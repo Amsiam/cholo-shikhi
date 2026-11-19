@@ -1,9 +1,10 @@
 // The signed-in frame (DESIGN.md "The Examiner's Desk"). One top bar runs the full width: on wide
 // screens its left cell is the sidebar's head (the wordmark) and its right cell holds the bell and
 // the account; on phones it carries the menu button, so there is only one bar. The sidebar groups
-// its places (Study / You, Teaching / Admin for staff); the current place is a light teal tint with
-// a filled OMR bubble, every other place an empty one. The drawer on phones holds the same groups.
-import { Link } from '@tanstack/react-router';
+// its places in short accordion sections (shadcn/ui Accordion) by the job at hand; the section with
+// the current place opens itself. The current place is a light teal tint with a filled OMR bubble,
+// every other place an empty one. The drawer on phones holds the same sections.
+import { Link, useRouterState } from '@tanstack/react-router';
 import {
   ArrowLeftRight,
   Banknote,
@@ -50,10 +51,16 @@ import {
   X,
 } from 'lucide-react';
 import { Dialog } from 'radix-ui';
-import { type ComponentType, type ReactNode, type SVGProps, useState } from 'react';
+import { type ComponentType, type ReactNode, type SVGProps, useEffect, useState } from 'react';
 import { NotificationBell } from '#src/features/app-shell/ui/NotificationBell.tsx';
 import type { MessageKey } from '#src/lib/i18n/index.ts';
 import { useI18n } from '#src/lib/i18n/react.tsx';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 
 type NavItem = {
   to:
@@ -105,25 +112,47 @@ type NavItem = {
   exact?: boolean;
 };
 
-const NAV: readonly NavItem[] = [
-  { to: '/', label: 'dashboard.nav.dashboard', icon: Home, exact: true },
-  { to: '/learn', label: 'learn.myCourses.title', icon: GraduationCap },
-  { to: '/live', label: 'live.nav', icon: Radio },
-  { to: '/catalog', label: 'shell.nav.courses', icon: BookOpen },
-  { to: '/store', label: 'store.nav', icon: Package },
-  { to: '/vault', label: 'dashboard.vault.title', icon: RotateCcw },
-  { to: '/practice', label: 'practice.nav', icon: BookOpenCheck },
-  { to: '/exams', label: 'exams.nav', icon: ClipboardList },
-  { to: '/questions', label: 'explore.nav', icon: Library },
-  { to: '/battles', label: 'battle.nav', icon: Swords },
-  { to: '/notifications', label: 'shell.nav.notifications', icon: Bell },
-  { to: '/me/goal', label: 'dashboard.nav.goal', icon: Target, exact: true },
-  { to: '/me/streak', label: 'streak.nav', icon: Flame },
-  { to: '/me/buddy', label: 'buddy.nav', icon: HeartHandshake },
-  { to: '/me/results', label: 'results.nav', icon: ClipboardCheck },
-  { to: '/me/purchases', label: 'purchases.title', icon: Receipt },
-  { to: '/me/refer', label: 'referral.nav', icon: Share2 },
-  { to: '/me', label: 'dashboard.nav.settings', icon: Settings, exact: true },
+// The Student menu, in four short groups: where to learn, how to practise, how it is going, and
+// the account.
+const STUDENT_GROUPS: readonly NavGroup[] = [
+  {
+    label: 'shell.nav.group.learn',
+    items: [
+      { to: '/', label: 'dashboard.nav.dashboard', icon: Home, exact: true },
+      { to: '/learn', label: 'learn.myCourses.title', icon: GraduationCap },
+      { to: '/live', label: 'live.nav', icon: Radio },
+      { to: '/catalog', label: 'shell.nav.courses', icon: BookOpen },
+      { to: '/store', label: 'store.nav', icon: Package },
+    ],
+  },
+  {
+    label: 'shell.nav.group.practice',
+    items: [
+      { to: '/practice', label: 'practice.nav', icon: BookOpenCheck },
+      { to: '/vault', label: 'dashboard.vault.title', icon: RotateCcw },
+      { to: '/exams', label: 'exams.nav', icon: ClipboardList },
+      { to: '/questions', label: 'explore.nav', icon: Library },
+      { to: '/battles', label: 'battle.nav', icon: Swords },
+    ],
+  },
+  {
+    label: 'shell.nav.group.progress',
+    items: [
+      { to: '/me/goal', label: 'dashboard.nav.goal', icon: Target, exact: true },
+      { to: '/me/results', label: 'results.nav', icon: ClipboardCheck },
+      { to: '/me/streak', label: 'streak.nav', icon: Flame },
+      { to: '/me/buddy', label: 'buddy.nav', icon: HeartHandshake },
+    ],
+  },
+  {
+    label: 'shell.nav.group.you',
+    items: [
+      { to: '/notifications', label: 'shell.nav.notifications', icon: Bell },
+      { to: '/me/purchases', label: 'purchases.title', icon: Receipt },
+      { to: '/me/refer', label: 'referral.nav', icon: Share2 },
+      { to: '/me', label: 'dashboard.nav.settings', icon: Settings, exact: true },
+    ],
+  },
 ];
 
 const TEACHING_HOME: NavItem = {
@@ -181,100 +210,64 @@ const SETTINGS: NavItem = {
 
 type NavGroup = { label: MessageKey; items: NavItem[] };
 
+const group = (label: MessageKey, items: NavItem[]): NavGroup[] =>
+  items.length > 0 ? [{ label, items }] : [];
+
 /**
- * The menu for these roles, in groups. Staff accounts (instructor, admin) are not learners: they get
- * their own work (Teaching, Admin) plus the catalog, notifications and settings, never the Student
- * items (dashboard, my courses, my goal).
+ * The menu for these roles, in short groups by the job at hand (each group is one accordion
+ * section). Staff accounts (instructor, admin, finance) are not learners: they get their own work
+ * plus the catalog, notifications and settings, never the Student items (dashboard, my courses,
+ * my goal). An Admin who does not teach still gets the authoring tools, inside Content and Live.
  */
 export function navGroupsFor(roles: readonly string[]): NavGroup[] {
   const isInstructor = roles.includes('instructor');
   const isAdmin = roles.includes('admin');
   const isFinance = roles.includes('finance');
-  if (!isInstructor && !isAdmin && !isFinance) {
-    return [
-      { label: 'shell.nav.group.study', items: NAV.slice(0, 10) },
-      { label: 'shell.nav.group.you', items: NAV.slice(10) },
-    ];
-  }
+  if (!isInstructor && !isAdmin && !isFinance) return [...STUDENT_GROUPS];
+  const adminTools = isAdmin && !isInstructor;
   return [
     ...(isInstructor
       ? [
-          {
-            label: 'shell.nav.group.teaching' as const,
-            items: [
-              TEACHING_HOME,
-              TEACHING,
-              LIVE_HOST,
-              BANK,
-              EXAM_BUILDER,
-              BATTLE_HOST,
-              EARNINGS,
-              PAYOUTS,
-            ],
-          },
+          ...group('shell.nav.group.teaching', [TEACHING_HOME, TEACHING, BANK, EXAM_BUILDER]),
+          ...group('shell.nav.group.live', [LIVE_HOST, BATTLE_HOST]),
+          ...group('shell.nav.group.earnings', [EARNINGS, PAYOUTS]),
         ]
       : []),
     ...(isAdmin
       ? [
-          {
-            label: 'shell.nav.group.admin' as const,
-            items: isInstructor
-              ? [
-                  ADMIN,
-                  STAFF,
-                  TOPICS,
-                  FINANCE,
-                  REFUNDS,
-                  REWARDS,
-                  KYC_REVIEW,
-                  PAYOUT_CYCLES,
-                  TAKEDOWNS,
-                  PAST_PAPERS,
-                  SWITCHES,
-                  MARKETING,
-                  DISPUTES,
-                  ATTRIBUTION,
-                  FRAUD,
-                  REFERRALS,
-                  HR,
-                ]
-              : [
-                  ADMIN,
-                  STAFF,
-                  LIVE_HOST,
-                  BANK,
-                  EXAM_BUILDER,
-                  BATTLE_HOST,
-                  TOPICS,
-                  FINANCE,
-                  REFUNDS,
-                  REWARDS,
-                  KYC_REVIEW,
-                  PAYOUT_CYCLES,
-                  TAKEDOWNS,
-                  PAST_PAPERS,
-                  SWITCHES,
-                  MARKETING,
-                  DISPUTES,
-                  ATTRIBUTION,
-                  FRAUD,
-                  REFERRALS,
-                  HR,
-                ],
-          },
+          ...group('shell.nav.group.console', [ADMIN, STAFF]),
+          ...group('shell.nav.group.content', [
+            TOPICS,
+            ...(adminTools ? [BANK, EXAM_BUILDER] : []),
+            PAST_PAPERS,
+            TAKEDOWNS,
+          ]),
+          ...(adminTools ? group('shell.nav.group.live', [LIVE_HOST, BATTLE_HOST]) : []),
+          ...group('shell.nav.group.sales', [REFUNDS, SWITCHES, MARKETING, REWARDS, REFERRALS]),
+          ...group('shell.nav.group.money', [FINANCE, PAYOUT_CYCLES, KYC_REVIEW, HR]),
+          ...group('shell.nav.group.trust', [DISPUTES, ATTRIBUTION, FRAUD]),
         ]
       : []),
-    // Finance staff (without Admin) review KYC and payout accounts.
+    // Finance staff (without Admin) review KYC, payout cycles, disputes, attribution and HR.
     ...(isFinance && !isAdmin
       ? [
-          {
-            label: 'shell.nav.group.admin' as const,
-            items: [KYC_REVIEW, PAYOUT_CYCLES, DISPUTES, ATTRIBUTION, HR],
-          },
+          ...group('shell.nav.group.money', [PAYOUT_CYCLES, KYC_REVIEW, HR]),
+          ...group('shell.nav.group.trust', [DISPUTES, ATTRIBUTION]),
         ]
       : []),
-    { label: 'shell.nav.group.you', items: [CATALOG, NOTIFICATIONS, SETTINGS] },
+    ...group('shell.nav.group.you', [CATALOG, NOTIFICATIONS, SETTINGS]),
   ];
+}
+
+/** Whether this menu item is the current place (exact items match only their own path). */
+export function isCurrentPlace(item: NavItem, pathname: string): boolean {
+  if (item.exact || item.to === '/') return pathname === item.to;
+  return pathname === item.to || pathname.startsWith(`${item.to}/`);
+}
+
+/** The group holding the current place, if any. */
+export function currentGroupOf(groups: readonly NavGroup[], pathname: string): string | undefined {
+  return groups.find((g) => g.items.some((item) => isCurrentPlace(item, pathname)))?.label;
 }
 
 /** The same menu as one flat list, in reading order. */
@@ -307,44 +300,80 @@ function Wordmark(props: { onNavigate?: () => void }) {
   );
 }
 
+/**
+ * The menu as a shadcn/ui Accordion: one section per group. The section holding the current place
+ * opens on its own (and again on every navigation into it); the others stay as the person left
+ * them. A closed section still says what it hides: a filled bubble when it holds the current place,
+ * and the unread count when it holds Notifications.
+ */
 function NavGroups(props: { unread: number; roles: readonly string[]; onNavigate?: () => void }) {
   const { t, formatInteger } = useI18n();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const groups = navGroupsFor(props.roles);
+  const current = currentGroupOf(groups, pathname);
+  const [open, setOpen] = useState<string[]>(() => (current ? [current] : []));
+  useEffect(() => {
+    if (current) setOpen((was) => (was.includes(current) ? was : [...was, current]));
+  }, [current]);
   return (
-    <div className="flex flex-col gap-6">
-      {navGroupsFor(props.roles).map((group) => (
-        <div key={group.label} className="flex flex-col gap-1">
-          <p className="px-3 pb-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">
-            {t(group.label)}
-          </p>
-          <ul className="flex flex-col gap-0.5">
-            {group.items.map((item) => (
-              <li key={item.to}>
-                <Link
-                  to={item.to}
-                  activeOptions={{ exact: item.exact ?? false, includeSearch: false }}
-                  onClick={props.onNavigate}
-                  className={`group flex min-h-11 items-center gap-3 rounded-sm px-3 text-ink/80 transition-colors hover:bg-primary/5 hover:text-ink data-[status=active]:bg-primary/10 data-[status=active]:font-semibold data-[status=active]:text-primary ${focusRing}`}
-                  data-testid={`student-nav-${item.to === '/' ? 'home' : item.to.slice(1).replaceAll('/', '-')}`}
-                >
-                  <item.icon aria-hidden="true" className="size-5 shrink-0" />
-                  <span className="flex-1">{t(item.label)}</span>
-                  {item.to === '/notifications' && props.unread > 0 ? (
-                    <span className="rounded-full bg-omr px-2 py-0.5 text-xs font-semibold text-white tabular-nums">
-                      {formatInteger(props.unread)}
-                    </span>
-                  ) : null}
-                  {/* The answer bubble: filled for the current place, empty otherwise. */}
+    <Accordion type="multiple" value={open} onValueChange={setOpen} className="flex flex-col gap-1">
+      {groups.map((group) => {
+        const isOpen = open.includes(group.label);
+        const holdsUnread =
+          props.unread > 0 && group.items.some((item) => item.to === '/notifications');
+        return (
+          <AccordionItem key={group.label} value={group.label} className="border-b-0">
+            <AccordionTrigger
+              className={`min-h-11 items-center gap-2 rounded-sm px-3 py-0 text-xs font-semibold tracking-wide text-ink-muted uppercase hover:bg-primary/5 hover:text-ink hover:no-underline data-[state=open]:text-ink ${focusRing}`}
+              data-testid={`nav-group-${group.label.split('.').pop()}`}
+            >
+              <span className="flex flex-1 items-center gap-2">
+                {t(group.label)}
+                {!isOpen && holdsUnread ? (
+                  <span className="rounded-full bg-omr px-2 py-0.5 text-[0.7rem] font-semibold tracking-normal text-white tabular-nums normal-case">
+                    {formatInteger(props.unread)}
+                  </span>
+                ) : null}
+                {!isOpen && group.label === current ? (
                   <span
                     aria-hidden="true"
-                    className="size-3.5 shrink-0 rounded-full border-2 border-ink/20 transition-colors group-hover:border-primary/50 group-data-[status=active]:border-primary group-data-[status=active]:bg-primary"
+                    className="size-2.5 shrink-0 rounded-full border-2 border-primary bg-primary"
                   />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
-    </div>
+                ) : null}
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="pb-2">
+              <ul className="flex flex-col gap-0.5">
+                {group.items.map((item) => (
+                  <li key={item.to}>
+                    <Link
+                      to={item.to}
+                      activeOptions={{ exact: item.exact ?? false, includeSearch: false }}
+                      onClick={props.onNavigate}
+                      className={`group flex min-h-11 items-center gap-3 rounded-sm px-3 text-sm text-ink/80 transition-colors hover:bg-primary/5 hover:text-ink data-[status=active]:bg-primary/10 data-[status=active]:font-semibold data-[status=active]:text-primary ${focusRing}`}
+                      data-testid={`student-nav-${item.to === '/' ? 'home' : item.to.slice(1).replaceAll('/', '-')}`}
+                    >
+                      <item.icon aria-hidden="true" className="size-5 shrink-0" />
+                      <span className="flex-1">{t(item.label)}</span>
+                      {item.to === '/notifications' && props.unread > 0 ? (
+                        <span className="rounded-full bg-omr px-2 py-0.5 text-xs font-semibold text-white tabular-nums">
+                          {formatInteger(props.unread)}
+                        </span>
+                      ) : null}
+                      {/* The answer bubble: filled for the current place, empty otherwise. */}
+                      <span
+                        aria-hidden="true"
+                        className="size-3.5 shrink-0 rounded-full border-2 border-ink/20 transition-colors group-hover:border-primary/50 group-data-[status=active]:border-primary group-data-[status=active]:bg-primary"
+                      />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </AccordionContent>
+          </AccordionItem>
+        );
+      })}
+    </Accordion>
   );
 }
 

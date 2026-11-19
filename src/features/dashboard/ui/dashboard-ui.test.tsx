@@ -5,12 +5,12 @@ import {
   createRouter,
   RouterProvider,
 } from '@tanstack/react-router';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it } from 'vitest';
 import { I18nProvider } from '#src/lib/i18n/react.tsx';
 import { StudentDashboard, type StudentDashboardProps } from './StudentDashboard.tsx';
-import { navFor, StudentShell, staffHome } from './StudentShell.tsx';
+import { currentGroupOf, navGroupsFor, StudentShell, staffHome } from './StudentShell.tsx';
 
 const ID = (n: number) => `0f9a5b2e-6d1c-4b8e-9a7f-${String(n).padStart(12, '0')}`;
 
@@ -85,7 +85,7 @@ describe('StudentDashboard', () => {
 });
 
 describe('StudentShell', () => {
-  it('opens the phone drawer with the same links and closes it again', async () => {
+  it('opens the phone drawer with the same accordion sections and closes it again', async () => {
     inRouter(
       <StudentShell unread={2}>
         <p>page</p>
@@ -93,106 +93,98 @@ describe('StudentShell', () => {
     );
     fireEvent.click(await screen.findByTestId('student-drawer-open'));
     const drawer = await screen.findByTestId('student-drawer');
-    expect(drawer.querySelectorAll('nav a')).toHaveLength(18);
+    // Four sections; only the one holding the current place (`/`, in Learn) starts open.
+    expect(drawer.querySelectorAll('[data-slot=accordion-trigger]')).toHaveLength(4);
+    expect(drawer.querySelectorAll('nav a')).toHaveLength(5);
     expect(drawer.querySelector('[data-testid=shell-account]')).not.toBeNull();
-    expect(drawer.textContent).toContain('Notifications');
+    fireEvent.click(within(drawer).getByTestId('nav-group-you'));
+    expect(await within(drawer).findByTestId('student-nav-notifications')).toBeTruthy();
     fireEvent.click(screen.getByTestId('student-drawer-close'));
     await waitFor(() => expect(screen.queryByTestId('student-drawer')).toBeNull());
   });
 
-  it('marks the unread count on the notifications link', async () => {
+  it('shows the unread count on the closed Account section, then on the notifications link', async () => {
     inRouter(
       <StudentShell unread={4}>
         <p>page</p>
       </StudentShell>,
     );
+    const [trigger] = await screen.findAllByTestId('nav-group-you');
+    expect(trigger?.getAttribute('aria-expanded')).toBe('false');
+    expect(trigger?.textContent).toContain('4');
+    if (trigger) fireEvent.click(trigger);
     const links = await screen.findAllByTestId('student-nav-notifications');
     expect(links[0]?.textContent).toContain('4');
   });
 });
 
 describe('menu by role', () => {
-  const paths = (roles: string[]) => navFor(roles).map((item) => item.to);
-  it('gives a Student the learning menu', () => {
-    expect(paths([])).toEqual([
-      '/',
-      '/learn',
-      '/live',
-      '/catalog',
-      '/store',
-      '/vault',
-      '/practice',
-      '/exams',
-      '/questions',
-      '/battles',
-      '/notifications',
-      '/me/goal',
-      '/me/streak',
-      '/me/buddy',
-      '/me/results',
-      '/me/purchases',
-      '/me/refer',
-      '/me',
+  const groups = (roles: string[]) =>
+    navGroupsFor(roles).map((g) => [g.label.split('.').pop(), g.items.map((item) => item.to)]);
+  it('gives a Student four short learning sections', () => {
+    expect(groups([])).toEqual([
+      ['learn', ['/', '/learn', '/live', '/catalog', '/store']],
+      ['practice', ['/practice', '/vault', '/exams', '/questions', '/battles']],
+      ['progress', ['/me/goal', '/me/results', '/me/streak', '/me/buddy']],
+      ['you', ['/notifications', '/me/purchases', '/me/refer', '/me']],
     ]);
   });
-  it('gives an instructor their teaching menu, without the Student items', () => {
-    expect(paths(['instructor'])).toEqual([
-      '/instructor',
-      '/instructor/courses',
-      '/live-host',
-      '/bank',
-      '/exam-builder',
-      '/battle-host',
-      '/instructor/earnings',
-      '/instructor/payouts',
-      '/catalog',
-      '/notifications',
-      '/me',
+  it('gives an instructor their teaching sections, without the Student items', () => {
+    expect(groups(['instructor'])).toEqual([
+      ['teaching', ['/instructor', '/instructor/courses', '/bank', '/exam-builder']],
+      ['live', ['/live-host', '/battle-host']],
+      ['earnings', ['/instructor/earnings', '/instructor/payouts']],
+      ['you', ['/catalog', '/notifications', '/me']],
     ]);
   });
-  it('gives an admin who also teaches both staff items', () => {
-    expect(paths(['instructor', 'admin'])).toEqual([
-      '/instructor',
-      '/instructor/courses',
-      '/live-host',
-      '/bank',
-      '/exam-builder',
-      '/battle-host',
-      '/instructor/earnings',
-      '/instructor/payouts',
-      '/admin',
-      '/admin/staff',
+  it('gives an admin who also teaches both sets of sections, each tool once', () => {
+    expect(groups(['instructor', 'admin'])).toEqual([
+      ['teaching', ['/instructor', '/instructor/courses', '/bank', '/exam-builder']],
+      ['live', ['/live-host', '/battle-host']],
+      ['earnings', ['/instructor/earnings', '/instructor/payouts']],
+      ['console', ['/admin', '/admin/staff']],
+      ['content', ['/admin/topics', '/admin/past-papers', '/admin/takedowns']],
+      [
+        'sales',
+        [
+          '/admin/refunds',
+          '/admin/switches',
+          '/admin/marketing',
+          '/admin/rewards',
+          '/admin/referrals',
+        ],
+      ],
+      ['money', ['/admin/finance', '/admin/payouts', '/admin/kyc', '/admin/hr']],
+      ['trust', ['/admin/disputes', '/admin/attribution', '/admin/fraud']],
+      ['you', ['/catalog', '/notifications', '/me']],
+    ]);
+  });
+  it('gives an admin who does not teach the authoring tools under Content and Live', () => {
+    const admin = Object.fromEntries(groups(['admin']));
+    expect(admin.content).toEqual([
       '/admin/topics',
-      '/admin/finance',
-      '/admin/refunds',
-      '/admin/rewards',
-      '/admin/kyc',
-      '/admin/payouts',
-      '/admin/takedowns',
+      '/bank',
+      '/exam-builder',
       '/admin/past-papers',
-      '/admin/switches',
-      '/admin/marketing',
-      '/admin/disputes',
-      '/admin/attribution',
-      '/admin/fraud',
-      '/admin/referrals',
-      '/admin/hr',
-      '/catalog',
-      '/notifications',
-      '/me',
+      '/admin/takedowns',
+    ]);
+    expect(admin.live).toEqual(['/live-host', '/battle-host']);
+    expect(admin.teaching).toBeUndefined();
+  });
+  it('gives Finance staff the money and trust sections, not the Student menu', () => {
+    expect(groups(['finance'])).toEqual([
+      ['money', ['/admin/payouts', '/admin/kyc', '/admin/hr']],
+      ['trust', ['/admin/disputes', '/admin/attribution']],
+      ['you', ['/catalog', '/notifications', '/me']],
     ]);
   });
-  it('gives Finance staff the KYC review, not the Student menu', () => {
-    expect(paths(['finance'])).toEqual([
-      '/admin/kyc',
-      '/admin/payouts',
-      '/admin/disputes',
-      '/admin/attribution',
-      '/admin/hr',
-      '/catalog',
-      '/notifications',
-      '/me',
-    ]);
+  it('opens the section holding the current place', () => {
+    const admin = navGroupsFor(['admin']);
+    expect(currentGroupOf(admin, '/admin/kyc')).toBe('shell.nav.group.money');
+    expect(currentGroupOf(admin, '/admin')).toBe('shell.nav.group.console');
+    expect(currentGroupOf(admin, '/exam-builder/abc')).toBe('shell.nav.group.content');
+    expect(currentGroupOf(navGroupsFor([]), '/learn/abc/lessons/x')).toBe('shell.nav.group.learn');
+    expect(currentGroupOf(navGroupsFor([]), '/me/purchases/p1')).toBe('shell.nav.group.you');
   });
   it('sends staff home to their own work', () => {
     expect(staffHome(['instructor'])).toBe('/instructor');

@@ -113,6 +113,11 @@ export async function getMyKyc(actor: Actor): Promise<Result<MyKyc, never>> {
   return ok(await kycOf(actor.userId));
 }
 
+/** One instructor's KYC and payout account, masked as the instructor sees them (an Admin's view). */
+export async function kycOfInstructor(instructorId: string): Promise<Result<MyKyc, never>> {
+  return ok(await kycOf(instructorId));
+}
+
 /** Contract 17: whether a person can be paid, with a masked account (for Payouts and Referrals). */
 export async function getVerificationStatus(userId: string) {
   const mine = await kycOf(userId);

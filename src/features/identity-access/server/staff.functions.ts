@@ -13,6 +13,7 @@ const AssignInput = z.object({
   role: z.enum(['instructor', 'admin', 'finance']),
   instructorType: z.enum(['employee', 'contractor']).optional(),
 });
+const MemberInput = z.object({ userId: z.uuid() });
 const RevokeInput = z.object({
   userId: z.uuid(),
   role: z.enum(['instructor', 'admin', 'finance']),
@@ -43,5 +44,14 @@ export const revokeStaffRole = createServerFn({ method: 'POST' })
   .handler(
     roleFn('admin', RevokeInput, async ({ actor, input, correlationId }) =>
       getIdentity().roles.revoke(actor, input, correlationId),
+    ),
+  );
+
+/** The staff profile page (/admin/staff/<id>): one staff member's account, roles and role history. */
+export const getStaffMember = createServerFn({ method: 'GET' })
+  .validator(typedInput<typeof MemberInput>())
+  .handler(
+    roleFn('admin', MemberInput, async ({ actor, input }) =>
+      getIdentity().staffMember(actor, input.userId),
     ),
   );

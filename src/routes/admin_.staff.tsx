@@ -1,4 +1,5 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router';
+import { AccessDenied } from '#src/features/app-shell/ui/ErrorScreen.tsx';
 import {
   assignStaffRole,
   findStaffCandidate,
@@ -32,11 +33,7 @@ function StaffPage() {
   const data = Route.useLoaderData();
   const router = useRouter();
   if (data.denied)
-    return (
-      <p role="alert" className="p-6">
-        {t('staff.error.forbidden')}
-      </p>
-    );
+    return <AccessDenied reason={t('staff.error.forbidden')} testId="staff-denied" />;
   const refresh = async <T,>(r: Outcome<T>) => {
     if (r.ok) await router.invalidate();
     return r;

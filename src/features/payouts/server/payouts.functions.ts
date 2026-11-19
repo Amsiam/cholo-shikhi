@@ -13,9 +13,11 @@ import {
 } from './payouts.schema.ts';
 import {
   commitCycle,
+  cycleStatementOf,
   dryRunCycle,
   myCycleStatement,
   myPayoutCycles,
+  payoutCyclesOf,
   payoutsOverview,
   recordFailure,
   recordPayment,
@@ -74,4 +76,26 @@ export const getMyCycleStatement = createServerFn({ method: 'GET' })
   .validator(typedInput<typeof CycleMonthInput>())
   .handler(
     roleFn(STAFF, CycleMonthInput, async ({ actor, input }) => myCycleStatement(actor, input)),
+  );
+
+const InstructorInput = z.object({ instructorId: z.uuid() });
+const InstructorCycleInput = z.object({
+  instructorId: z.uuid(),
+  month: CycleMonthInput.shape.month,
+});
+
+/** The staff profile page: one instructor's payout cycles (earned, held, paid), for an Admin. */
+export const getInstructorPayoutCycles = createServerFn({ method: 'GET' })
+  .validator(typedInput<typeof InstructorInput>())
+  .handler(
+    roleFn('admin', InstructorInput, async ({ input }) => payoutCyclesOf(input.instructorId)),
+  );
+
+/** The staff profile page: one instructor's statement for one cycle month, for an Admin. */
+export const getInstructorCycleStatement = createServerFn({ method: 'GET' })
+  .validator(typedInput<typeof InstructorCycleInput>())
+  .handler(
+    roleFn('admin', InstructorCycleInput, async ({ input }) =>
+      cycleStatementOf(input.instructorId, { month: input.month }),
+    ),
   );

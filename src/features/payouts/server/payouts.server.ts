@@ -633,7 +633,14 @@ export type MyPayoutCycle = Omit<PayoutLineView, 'instructorId' | 'name' | 'prov
 
 /** US7.9: the caller's own cycles with their state, newest first. */
 export async function myPayoutCycles(actor: Actor): Promise<Result<MyPayoutCycle[], never>> {
-  const rows = await repo.linesOfInstructor(getDb(), actor.userId);
+  return payoutCyclesOf(actor.userId);
+}
+
+/** One instructor's payout cycles, newest first (the instructor's own view, or an Admin's). */
+export async function payoutCyclesOf(
+  instructorId: string,
+): Promise<Result<MyPayoutCycle[], never>> {
+  const rows = await repo.linesOfInstructor(getDb(), instructorId);
   return ok(
     rows.map((r) => {
       const { instructorId: _i, name: _n, providerRef: _p, ...view } = lineView(r.line, '');
@@ -822,14 +829,22 @@ export async function myCycleStatement(
   actor: Actor,
   raw: CycleMonthInput,
 ): Promise<Result<CycleStatement, AppError<'NOT_FOUND'>>> {
+  return cycleStatementOf(actor.userId, raw);
+}
+
+/** One instructor's statement for one cycle month (their own view, or an Admin's). */
+export async function cycleStatementOf(
+  instructorId: string,
+  raw: CycleMonthInput,
+): Promise<Result<CycleStatement, AppError<'NOT_FOUND'>>> {
   const input = CycleMonthInput.parse(raw);
   const db = getDb();
-  const row = await repo.lineOfInstructorInMonth(db, actor.userId, input.month);
+  const row = await repo.lineOfInstructorInMonth(db, instructorId, input.month);
   if (!row) return err(appError('NOT_FOUND'));
   const [data, stored, names] = await Promise.all([
     statementData(row),
     storeStatements(row, `statement-${row.line.lineId}`),
-    getIdentity().displayNamesOf([actor.userId]),
+    getIdentity().displayNamesOf([instructorId]),
   ]);
   const fileOf = async (locale: 'bn' | 'en') => {
     const s = stored.find((x) => x.locale === locale);
@@ -842,7 +857,7 @@ export async function myCycleStatement(
   return ok({
     ...view,
     month: row.month,
-    instructorName: names[actor.userId] ?? '',
+    instructorName: names[instructorId] ?? '',
     lines: data.lines,
     csv: { bn: await fileOf('bn'), en: await fileOf('en') },
     storedAt: first.createdAt.toISOString(),

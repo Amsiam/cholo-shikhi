@@ -72,6 +72,7 @@ import { Route as MeStreakRouteImport } from './routes/me_.streak'
 import { Route as RCodeRouteImport } from './routes/r.$code'
 import { Route as ResetPasswordIndexRouteImport } from './routes/reset-password/index'
 import { Route as ResetPasswordTokenRouteImport } from './routes/reset-password/$token'
+import { Route as AdminStaffUserIdRouteImport } from './routes/admin_.staff_.$userId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCatalogImagesRouteImport } from './routes/api/catalog/images'
 import { Route as ApiHealthIndexRouteImport } from './routes/api/health/index'
@@ -405,6 +406,11 @@ const ResetPasswordTokenRoute = ResetPasswordTokenRouteImport.update({
   path: '/reset-password/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminStaffUserIdRoute = AdminStaffUserIdRouteImport.update({
+  id: '/admin_/staff_/$userId',
+  path: '/admin/staff/$userId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -560,6 +566,7 @@ export interface FileRoutesByFullPath {
   '/live-host/': typeof LiveHostIndexRoute
   '/live/': typeof LiveIndexRoute
   '/reset-password/': typeof ResetPasswordIndexRoute
+  '/admin/staff/$userId': typeof AdminStaffUserIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/catalog/images': typeof ApiCatalogImagesRoute
   '/api/health/ready': typeof ApiHealthReadyRoute
@@ -642,6 +649,7 @@ export interface FileRoutesByTo {
   '/live-host': typeof LiveHostIndexRoute
   '/live': typeof LiveIndexRoute
   '/reset-password': typeof ResetPasswordIndexRoute
+  '/admin/staff/$userId': typeof AdminStaffUserIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/catalog/images': typeof ApiCatalogImagesRoute
   '/api/health/ready': typeof ApiHealthReadyRoute
@@ -725,6 +733,7 @@ export interface FileRoutesById {
   '/live-host/': typeof LiveHostIndexRoute
   '/live/': typeof LiveIndexRoute
   '/reset-password/': typeof ResetPasswordIndexRoute
+  '/admin_/staff_/$userId': typeof AdminStaffUserIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/catalog/images': typeof ApiCatalogImagesRoute
   '/api/health/ready': typeof ApiHealthReadyRoute
@@ -809,6 +818,7 @@ export interface FileRouteTypes {
     | '/live-host/'
     | '/live/'
     | '/reset-password/'
+    | '/admin/staff/$userId'
     | '/api/auth/$'
     | '/api/catalog/images'
     | '/api/health/ready'
@@ -891,6 +901,7 @@ export interface FileRouteTypes {
     | '/live-host'
     | '/live'
     | '/reset-password'
+    | '/admin/staff/$userId'
     | '/api/auth/$'
     | '/api/catalog/images'
     | '/api/health/ready'
@@ -973,6 +984,7 @@ export interface FileRouteTypes {
     | '/live-host/'
     | '/live/'
     | '/reset-password/'
+    | '/admin_/staff_/$userId'
     | '/api/auth/$'
     | '/api/catalog/images'
     | '/api/health/ready'
@@ -1056,6 +1068,7 @@ export interface RootRouteChildren {
   LiveHostIndexRoute: typeof LiveHostIndexRoute
   LiveIndexRoute: typeof LiveIndexRoute
   ResetPasswordIndexRoute: typeof ResetPasswordIndexRoute
+  AdminStaffUserIdRoute: typeof AdminStaffUserIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCatalogImagesRoute: typeof ApiCatalogImagesRoute
   ApiHealthReadyRoute: typeof ApiHealthReadyRoute
@@ -1518,6 +1531,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin_/staff_/$userId': {
+      id: '/admin_/staff_/$userId'
+      path: '/admin/staff/$userId'
+      fullPath: '/admin/staff/$userId'
+      preLoaderRoute: typeof AdminStaffUserIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -1704,6 +1724,7 @@ const rootRouteChildren: RootRouteChildren = {
   LiveHostIndexRoute: LiveHostIndexRoute,
   LiveIndexRoute: LiveIndexRoute,
   ResetPasswordIndexRoute: ResetPasswordIndexRoute,
+  AdminStaffUserIdRoute: AdminStaffUserIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCatalogImagesRoute: ApiCatalogImagesRoute,
   ApiHealthReadyRoute: ApiHealthReadyRoute,

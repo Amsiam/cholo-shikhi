@@ -138,9 +138,17 @@ export async function getCourseInsights(
 }
 
 export async function getMyEarnings(actor: Actor): Promise<Result<InstructorEarnings, never>> {
-  const earnings = await instructorEarnings(actor.userId);
+  return earningsOf(actor.userId);
+}
+
+/**
+ * One instructor's earnings from the ledger: totals, the last months and each course they own or
+ * earned from. Callers decide who may ask: the instructor for themself, an Admin for anyone.
+ */
+export async function earningsOf(instructorId: string): Promise<Result<InstructorEarnings, never>> {
+  const earnings = await instructorEarnings(instructorId);
   const ids = new Set([
-    ...(await myCourseIds(actor.userId)),
+    ...(await myCourseIds(instructorId)),
     ...earnings.byCourse.map((c) => c.courseId),
   ]);
   const titles = await courseTitlesOf([...ids]);

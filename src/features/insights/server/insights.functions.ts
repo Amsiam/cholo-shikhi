@@ -1,6 +1,7 @@
 // Statistics and finance server functions. Course statistics and earnings need an instructor or
 // Admin with two-step sign-in (roleFn); platform finance is Admin-only.
 import { createServerFn } from '@tanstack/react-start';
+import { z } from 'zod';
 import { roleFn, typedInput } from '#src/server/fn.ts';
 import {
   CourseInsightsInput,
@@ -9,6 +10,7 @@ import {
   StatementInput,
 } from './insights.schema.ts';
 import {
+  earningsOf,
   getCourseInsights,
   getMyEarnings,
   getMyStatement,
@@ -46,3 +48,10 @@ export const getMyEarningStatement = createServerFn({ method: 'GET' })
 export const getPlatformBooks = createServerFn({ method: 'GET' })
   .validator(typedInput<typeof PlatformFinanceInput>())
   .handler(roleFn(['admin'], PlatformFinanceInput, async ({ input }) => getPlatformFinance(input)));
+
+const InstructorInput = z.object({ instructorId: z.uuid() });
+
+/** The staff profile page: one instructor's earnings by month and by course, for an Admin. */
+export const getInstructorEarnings = createServerFn({ method: 'GET' })
+  .validator(typedInput<typeof InstructorInput>())
+  .handler(roleFn('admin', InstructorInput, async ({ input }) => earningsOf(input.instructorId)));

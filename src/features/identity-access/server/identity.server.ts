@@ -697,6 +697,42 @@ export function createIdentity(deps: IdentityDeps) {
   }
 
   /**
+   * One staff member's account for an Admin (two-step): contact details, account state, two-step,
+   * the roles held now and every role held before (who gave or took it, and when). Only accounts
+   * that hold or once held a staff role answer; anyone else is NOT_FOUND.
+   */
+  async function staffMember(actor: Actor, userId: string) {
+    if (!canManageRoles(actor)) return err(appError('FORBIDDEN'));
+    const user = await repo.findUserById(db, userId);
+    const history = user ? await repo.assignmentsOf(db, userId) : [];
+    if (!user || history.length === 0) return err(appError('NOT_FOUND'));
+    const people = new Set(history.flatMap((h) => [h.assignedBy, h.revokedBy ?? h.assignedBy]));
+    const names = await displayNamesOf([...people]);
+    const roleOf = (h: (typeof history)[number]) => ({
+      role: h.role,
+      instructorType: h.instructorType,
+      assignedAt: h.assignedAt.toISOString(),
+      assignedBy: names[h.assignedBy] ?? '',
+      revokedAt: h.revokedAt ? h.revokedAt.toISOString() : null,
+      revokedBy: h.revokedBy ? (names[h.revokedBy] ?? '') : null,
+    });
+    return ok({
+      userId: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone ?? null,
+      locale: user.locale === 'en' ? ('en' as const) : ('bn' as const),
+      status: user.status,
+      isSuspended: await isSuspended(user.id),
+      hasTwoStep: await repo.hasActiveCredential(db, user.id),
+      createdAt: user.createdAt.toISOString(),
+      emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
+      roles: history.filter((h) => h.revokedAt === null).map(roleOf),
+      history: history.map(roleOf),
+    });
+  }
+
+  /**
    * US1.6: finds an account by its exact email so an Admin (two-step) can give it a role. Only for
    * Admins, so the answer cannot be used to probe accounts.
    */
@@ -1073,6 +1109,7 @@ export function createIdentity(deps: IdentityDeps) {
     bootstrapAdmin,
     roles,
     staffDirectory,
+    staffMember,
     findAccountForStaffing,
     hasRole,
     displayNamesOf,

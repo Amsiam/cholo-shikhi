@@ -13,6 +13,7 @@ import {
   decideKyc,
   getMyKyc,
   kycDocument,
+  kycOfInstructor,
   kycQueue,
   savePayoutAccount,
   submitKyc,
@@ -54,3 +55,12 @@ export const decideKycItem = createServerFn({ method: 'POST' })
 export const getKycDocument = createServerFn({ method: 'GET' })
   .validator(typedInput<typeof KycDocumentInput>())
   .handler(roleFn(FINANCE, KycDocumentInput, async ({ input }) => kycDocument(input)));
+
+const InstructorInput = z.object({ instructorId: z.uuid() });
+
+/** The staff profile page: one instructor's KYC and payout account, masked, for an Admin. */
+export const getInstructorKyc = createServerFn({ method: 'GET' })
+  .validator(typedInput<typeof InstructorInput>())
+  .handler(
+    roleFn('admin', InstructorInput, async ({ input }) => kycOfInstructor(input.instructorId)),
+  );

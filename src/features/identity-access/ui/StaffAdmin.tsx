@@ -2,6 +2,7 @@
 // by its email to give it a role (an Instructor is Employee or Contracted), and taking a role away
 // behind a confirmation. Two-step status is shown, since staff must use it (US1.7).
 import { useForm } from '@tanstack/react-form';
+import { Link } from '@tanstack/react-router';
 import { ShieldAlert, ShieldCheck, UserPlus, Users } from 'lucide-react';
 import { useState } from 'react';
 import { useI18n } from '#src/lib/i18n/react.tsx';
@@ -268,7 +269,15 @@ export function StaffAdmin(props: {
               <li key={m.userId} className="flex flex-col gap-2 py-3" data-testid="staff-row">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="font-semibold">
-                    {m.name} · <span className="font-normal text-ink/80">{m.email}</span>
+                    <Link
+                      to="/admin/staff/$userId"
+                      params={{ userId: m.userId }}
+                      className="text-primary underline-offset-4 hover:underline"
+                      data-testid="staff-open"
+                    >
+                      {m.name}
+                    </Link>{' '}
+                    · <span className="font-normal text-ink/80">{m.email}</span>
                   </span>
                   <span
                     className={`inline-flex items-center gap-1 text-xs font-semibold ${m.hasTwoStep ? 'text-pass' : 'text-omr'}`}

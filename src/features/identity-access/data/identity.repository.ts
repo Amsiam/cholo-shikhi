@@ -363,6 +363,23 @@ export function createIdentityRepository() {
         .limit(500);
     },
 
+    /** Every role this account has held, current and taken away, newest first. */
+    async assignmentsOf(db: Executor, userId: string) {
+      return db
+        .select({
+          role: staffRoleAssignment.role,
+          instructorType: staffRoleAssignment.instructorType,
+          assignedBy: staffRoleAssignment.assignedBy,
+          assignedAt: staffRoleAssignment.assignedAt,
+          revokedBy: staffRoleAssignment.revokedBy,
+          revokedAt: staffRoleAssignment.revokedAt,
+        })
+        .from(staffRoleAssignment)
+        .where(eq(staffRoleAssignment.userId, userId))
+        .orderBy(desc(staffRoleAssignment.assignedAt))
+        .limit(100);
+    },
+
     async activeAssignment(db: Executor, userId: string, role: StaffRole) {
       const [row] = await db
         .select()

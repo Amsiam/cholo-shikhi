@@ -108,6 +108,7 @@ function AppLayout() {
     pathname.startsWith('/exam-builder/') ||
     pathname === '/bank' ||
     pathname === '/admin/topics' ||
+    /^\/admin\/staff\/[^/]+$/.test(pathname) ||
     pathname === '/admin/finance' ||
     pathname === '/admin/refunds';
   // Signed-in Student pages sit inside the Student panel (sidebar on wide screens, drawer on

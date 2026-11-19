@@ -59,8 +59,9 @@ infrastructure.
 
 | Area | What it does | Where |
 |---|---|---|
-| **Console** | Feature flags, versioned settings, the audit log, free-trial courses and caps per segment | `/admin` |
-| **Staff and roles** | Give or take away the Instructor (employee or contractor), Admin and Finance roles; never the last Admin | `/admin/staff` |
+| **Console** | Feature flags, every setting in plain words with its current value (changed in place, with a reason), the audit log, free-trial courses and caps per segment | `/admin` |
+| **Staff and roles** | Add staff by name and email: a confirmed account gets the role at once, anyone else gets an emailed set-password link (7 days; resend or cancel). Take a role away; never the last Admin | `/admin/staff`, `/staff-invite/:token` |
+| **Staff profiles** | One staff member's account, roles and role history, payout cycles with each cycle's statement, earnings by month and course, KYC, payout account (masked) and HR record | `/admin/staff/:id` |
 | **Goals and topics** | Segments, Goals and the question taxonomy (subjects, topics, sub-topics) | `/admin/goals`, `/admin/topics` |
 | **Catalog** | Plans, exam packages, blocked link domains | `/admin/plans`, `/admin/exam-packages`, `/admin/blocked-domains` |
 | **Past-paper import** | Import rights-cleared or public-domain past-paper questions from a CSV, with a per-row report; repeat imports add no duplicates | `/admin/past-papers` |

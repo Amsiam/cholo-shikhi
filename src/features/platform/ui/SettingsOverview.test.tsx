@@ -5,16 +5,26 @@ import {
   createRouter,
   RouterProvider,
 } from '@tanstack/react-router';
-import { render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import { I18nProvider } from '#src/lib/i18n/react.tsx';
-import { type SettingRow, SettingsOverview } from './SettingsOverview.tsx';
+import {
+  type SaveSetting,
+  type SettingRow,
+  SettingsOverview,
+  toFormText,
+  toStoredValue,
+} from './SettingsOverview.tsx';
 
-function ui(rows: SettingRow[], locale: 'bn' | 'en' = 'en') {
+function ui(
+  rows: SettingRow[],
+  locale: 'bn' | 'en' = 'en',
+  onSave: SaveSetting = async () => ({ ok: true }),
+) {
   const rootRoute = createRootRoute({
     component: () => (
       <I18nProvider locale={locale}>
-        <SettingsOverview rows={rows} />
+        <SettingsOverview rows={rows} onSave={onSave} />
       </I18nProvider>
     ),
   });
@@ -117,5 +127,80 @@ describe('SettingsOverview', () => {
     ui(ROWS, 'bn');
     const window = await screen.findByTestId('setting-auth.signIn.windowMinutes');
     expect(within(window).getByTestId('setting-value').textContent).toBe('১৫ মিনিট');
+  });
+
+  it('changes a price in taka, saves it in poisha with the reason', async () => {
+    const onSave = vi.fn<SaveSetting>(async () => ({ ok: true }));
+    ui(ROWS, 'en', onSave);
+    const price = await screen.findByTestId('setting-catalog.coursePrice.minPoisha');
+    fireEvent.click(within(price).getByTestId('setting-change'));
+    fireEvent.change(within(price).getByLabelText('New value'), { target: { value: '1,500.5' } });
+    fireEvent.change(within(price).getByLabelText('Why are you changing it?'), {
+      target: { value: 'Launch pricing' },
+    });
+    fireEvent.click(within(price).getByTestId('setting-save'));
+    await waitFor(() =>
+      expect(onSave).toHaveBeenCalledWith({
+        settingKey: 'catalog.coursePrice.minPoisha',
+        value: 150050,
+        reason: 'Launch pricing',
+      }),
+    );
+    await waitFor(() => expect(within(price).queryByTestId('setting-editor')).toBeNull());
+  });
+
+  it('refuses a value out of range or without a reason before calling the server', async () => {
+    const onSave = vi.fn<SaveSetting>(async () => ({ ok: true }));
+    ui(ROWS, 'en', onSave);
+    const window = await screen.findByTestId('setting-auth.signIn.windowMinutes');
+    fireEvent.click(within(window).getByTestId('setting-change'));
+    fireEvent.change(within(window).getByLabelText('New value'), { target: { value: '5000' } });
+    fireEvent.click(within(window).getByTestId('setting-save'));
+    expect((await within(window).findByRole('alert')).textContent).toContain('outside');
+    fireEvent.change(within(window).getByLabelText('New value'), { target: { value: '30' } });
+    fireEvent.click(within(window).getByTestId('setting-save'));
+    expect((await within(window).findByRole('alert')).textContent).toContain('reason');
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('shows the server refusal and keeps the form open', async () => {
+    const onSave = vi.fn<SaveSetting>(async () => ({
+      ok: false,
+      error: { code: 'VALIDATION_FAILED', fieldErrors: { value: ['errors.validation.required'] } },
+    }));
+    ui(ROWS, 'en', onSave);
+    const window = await screen.findByTestId('setting-auth.signIn.windowMinutes');
+    fireEvent.click(within(window).getByTestId('setting-change'));
+    fireEvent.change(within(window).getByLabelText('Why are you changing it?'), {
+      target: { value: 'Testing' },
+    });
+    fireEvent.click(within(window).getByTestId('setting-save'));
+    expect((await within(window).findByRole('alert')).textContent).toContain('required');
+    expect(within(window).getByTestId('setting-editor')).toBeTruthy();
+  });
+
+  it('offers no in-place editor for per-segment settings', async () => {
+    ui(ROWS);
+    const trial = await screen.findByTestId('setting-commerce.trial.days');
+    expect(within(trial).queryByTestId('setting-change')).toBeNull();
+  });
+});
+
+describe('setting form values', () => {
+  it('reads taka and percent with up to two decimals as hundredths, and Bangla digits', () => {
+    expect(toStoredValue('taka', '১৫০০')).toBe(150000);
+    expect(toStoredValue('taka', '12.5')).toBe(1250);
+    expect(toStoredValue('taka', '12.345')).toBeNull();
+    expect(toStoredValue('percent', '12.5')).toBe(1250);
+    expect(toStoredValue('minutes', '15')).toBe(15);
+    expect(toStoredValue('minutes', '1.5')).toBeNull();
+    expect(toStoredValue('onOff', 'true')).toBe(true);
+    expect(toStoredValue('rounding', 'down')).toBe('down');
+    expect(toStoredValue('rounding', 'sideways')).toBeNull();
+  });
+  it('starts the form from the stored value', () => {
+    expect(toFormText('taka', 150050)).toBe('1500.50');
+    expect(toFormText('percent', 1000)).toBe('10');
+    expect(toFormText('onOff', null)).toBe('false');
   });
 });

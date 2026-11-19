@@ -10,7 +10,10 @@ import {
   saveSetting,
 } from '#src/features/platform/server/settings.functions.ts';
 import { type Column, DataTable } from '#src/features/platform/ui/DataTable.tsx';
-import { SettingsOverview } from '#src/features/platform/ui/SettingsOverview.tsx';
+import {
+  type SaveSettingOutcome,
+  SettingsOverview,
+} from '#src/features/platform/ui/SettingsOverview.tsx';
 import { useI18n } from '#src/lib/i18n/react.tsx';
 
 type FlagRow = { flagKey: string; state: string; rolloutPercent: number; revision: number };
@@ -156,7 +159,14 @@ function AdminPage() {
       </div>
       <div className="grid gap-2">
         <h2 className="font-medium">{t('admin.settings.title')}</h2>
-        <SettingsOverview rows={data.settings} />
+        <SettingsOverview
+          rows={data.settings}
+          onSave={async (input) => {
+            const r = (await saveSetting({ data: input })) as SaveSettingOutcome;
+            if (r.ok) await router.invalidate();
+            return r;
+          }}
+        />
       </div>
       <div className="grid gap-2">
         <h2 className="font-medium">{t('admin.audit.title')}</h2>

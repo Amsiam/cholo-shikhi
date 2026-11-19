@@ -594,6 +594,276 @@ export function createIdentity(deps: IdentityDeps) {
     }
   }
 
+  // ------------------------------------------------------- staff invitations
+  /** How long an invitation link works; a resend issues a new link for the same span. */
+  const INVITE_VALIDITY_DAYS = 7;
+
+  async function sendInviteEmail(
+    to: { email: string; name: string; locale: 'bn' | 'en' },
+    token: string,
+    role: StaffRole,
+  ): Promise<void> {
+    const link = `${env.APP_BASE_URL}/staff-invite/${encodeURIComponent(token)}`;
+    const subject = translate(to.locale, 'auth.email.invite.subject');
+    const text = translate(to.locale, 'auth.email.invite.body', {
+      name: to.name,
+      role: translate(to.locale, `staff.role.${role}`),
+      days: INVITE_VALIDITY_DAYS,
+      link,
+    });
+    try {
+      await deps.emailSender.send({
+        to: to.email,
+        locale: to.locale,
+        kind: 'staff_invite',
+        subject,
+        text,
+        link,
+      });
+    } catch (error) {
+      // The invitation stands; an Admin can send a new link from the staff screen.
+      log.error({ err: error, code: 'STAFF_INVITE_EMAIL_FAILED' }, 'staff invite email not sent');
+    }
+  }
+
+  const newInviteToken = () => {
+    const token = randomBytes(32).toString('base64url');
+    return { token, tokenHash: sha256Hex(token) };
+  };
+  const inviteExpiry = () => new Date(now().getTime() + INVITE_VALIDITY_DAYS * 24 * 60 * 60 * 1000);
+
+  const staffInvites = {
+    /**
+     * Adds someone as staff by email. An existing verified, active account gets the role at once
+     * (as roles.assign). Otherwise the account is created (or an unverified one reused) without a
+     * usable password, and an emailed link lets them set one; the role is given when they do.
+     */
+    async invite(
+      actor: Actor,
+      input: {
+        name: string;
+        email: string;
+        locale: 'bn' | 'en';
+        role: StaffRole;
+        instructorType?: 'employee' | 'contractor';
+      },
+      correlationId: string,
+    ): Promise<Result<{ mode: 'assigned' | 'invited'; userId: string }, AppError>> {
+      if (!canManageRoles(actor)) return err(appError('FORBIDDEN'));
+      const email = input.email.trim().toLowerCase();
+      const existing = await repo.findUserByEmail(db, email);
+      if (existing?.emailVerified && existing.status === 'active') {
+        const assigned = await roles.assign(
+          actor,
+          {
+            userId: existing.id,
+            role: input.role,
+            ...(input.instructorType ? { instructorType: input.instructorType } : {}),
+          },
+          correlationId,
+        );
+        return assigned.ok ? ok({ mode: 'assigned', userId: existing.id }) : assigned;
+      }
+      // The same role and type rules as a direct assignment (target facts do not apply yet).
+      const rules = checkAssign(actor, input, {
+        target: { exists: true, isEmailVerified: true, status: 'active' },
+        isAlreadyHeld: false,
+      });
+      if (!rules.ok) return rules;
+      if (existing && existing.status !== 'unverified') {
+        return err(appError('INVALID_STATE', { details: { reason: 'account_not_invitable' } }));
+      }
+      if (existing && (await repo.openInvitationFor(db, existing.id, input.role))) {
+        return err(appError('ALREADY_INVITED', { namespace: 'identity' }));
+      }
+      let userId = existing?.id;
+      if (!userId) {
+        // A sign-in account with a random password nobody knows: unusable until the link is used.
+        const ctx = await auth.$context;
+        const user = await ctx.internalAdapter.createUser(
+          { email, name: input.name.trim(), emailVerified: false, locale: input.locale },
+          { method: 'admin' },
+        );
+        await ctx.internalAdapter.linkAccount({
+          userId: user.id,
+          providerId: 'credential',
+          accountId: user.id,
+          password: await ctx.password.hash(randomBytes(32).toString('base64url')),
+        });
+        userId = user.id;
+      }
+      const { token, tokenHash } = newInviteToken();
+      const invitedUserId = userId;
+      await withTransaction(db, async (tx) => {
+        const exec = unwrapTx(tx);
+        await repo.insertInvitation(exec, {
+          userId: invitedUserId,
+          role: input.role,
+          instructorType: input.instructorType ?? null,
+          tokenHash,
+          invitedBy: actor.userId,
+          expiresAt: inviteExpiry(),
+          at: now(),
+        });
+        await audit.record(tx, {
+          actorId: actor.userId,
+          action: 'identity.staff_invite.created',
+          subjectType: 'user_account',
+          subjectId: invitedUserId,
+          after: { role: input.role, instructorType: input.instructorType ?? null },
+          correlationId,
+        });
+      });
+      await sendInviteEmail(
+        { email, name: existing?.name ?? input.name.trim(), locale: input.locale },
+        token,
+        input.role,
+      );
+      emit('staff_invited', { role: input.role });
+      return ok({ mode: 'invited', userId: invitedUserId });
+    },
+
+    /** Open invitations for the staff screen, with who sent each and whether it has expired. */
+    async list(actor: Actor) {
+      if (!canManageRoles(actor)) return err(appError('FORBIDDEN'));
+      const rows = await repo.openInvitations(db);
+      const names = await displayNamesOf([...new Set(rows.map((r) => r.invitedBy))]);
+      const at = now().getTime();
+      return ok(
+        rows.map((r) => ({
+          invitationId: r.invitationId,
+          userId: r.userId,
+          name: r.name,
+          email: r.email,
+          role: r.role,
+          instructorType: r.instructorType,
+          invitedBy: names[r.invitedBy] ?? '',
+          createdAt: r.createdAt.toISOString(),
+          expiresAt: r.expiresAt.toISOString(),
+          isExpired: r.expiresAt.getTime() <= at,
+        })),
+      );
+    },
+
+    /** Sends a fresh link (the old one stops working) and restarts the validity period. */
+    async resend(
+      actor: Actor,
+      invitationId: string,
+      correlationId: string,
+    ): Promise<Result<void, AppError>> {
+      if (!canManageRoles(actor)) return err(appError('FORBIDDEN'));
+      const found = await repo.invitationWithUser(db, { invitationId });
+      if (!found) return err(appError('NOT_FOUND'));
+      const { token, tokenHash } = newInviteToken();
+      const renewed = await withTransaction(db, async (tx) => {
+        const exec = unwrapTx(tx);
+        if (!(await repo.renewInvitation(exec, invitationId, tokenHash, inviteExpiry())))
+          return false;
+        await audit.record(tx, {
+          actorId: actor.userId,
+          action: 'identity.staff_invite.resent',
+          subjectType: 'user_account',
+          subjectId: found.invitation.userId,
+          correlationId,
+        });
+        return true;
+      });
+      if (!renewed) return err(appError('INVITE_INVALID', { namespace: 'identity' }));
+      await sendInviteEmail(
+        { email: found.email, name: found.name, locale: found.locale === 'en' ? 'en' : 'bn' },
+        token,
+        found.invitation.role,
+      );
+      return ok(undefined);
+    },
+
+    async cancel(
+      actor: Actor,
+      invitationId: string,
+      correlationId: string,
+    ): Promise<Result<void, AppError>> {
+      if (!canManageRoles(actor)) return err(appError('FORBIDDEN'));
+      return withTransaction(db, async (tx) => {
+        const exec = unwrapTx(tx);
+        const found = await repo.invitationWithUser(exec, { invitationId });
+        if (!found) return err(appError('NOT_FOUND'));
+        if (!(await repo.cancelInvitation(exec, invitationId, actor.userId, now())))
+          return err(appError('INVITE_INVALID', { namespace: 'identity' }));
+        await audit.record(tx, {
+          actorId: actor.userId,
+          action: 'identity.staff_invite.cancelled',
+          subjectType: 'user_account',
+          subjectId: found.invitation.userId,
+          correlationId,
+        });
+        return ok(undefined);
+      });
+    },
+
+    /** What the invitation page shows before the password is set. The token is the secret. */
+    async preview(token: string) {
+      const found = await repo.invitationWithUser(db, { tokenHash: sha256Hex(token) });
+      if (!found) return err(appError('INVITE_INVALID', { namespace: 'identity' }));
+      const i = found.invitation;
+      const state =
+        i.acceptedAt || i.cancelledAt
+          ? ('used' as const)
+          : i.expiresAt.getTime() <= now().getTime()
+            ? ('expired' as const)
+            : ('open' as const);
+      return ok({
+        name: found.name,
+        email: found.email,
+        role: i.role,
+        instructorType: i.instructorType,
+        state,
+      });
+    },
+
+    /**
+     * The invitee sets a password with the emailed link. That proves they own the email, so the
+     * account becomes active and the role is given (by the inviting Admin), all at once; any
+     * session the account had is ended. Then they sign in and set up two-step like other staff.
+     */
+    async accept(token: string, password: string): Promise<Result<{ email: string }, AppError>> {
+      const invalid = err(appError('INVITE_INVALID', { namespace: 'identity' }));
+      const found = await repo.invitationWithUser(db, { tokenHash: sha256Hex(token) });
+      if (!found) return invalid;
+      const ctx = await auth.$context;
+      const hash = await ctx.password.hash(password);
+      const i = found.invitation;
+      const accepted = await withTransaction(db, async (tx) => {
+        const exec = unwrapTx(tx);
+        if (!(await repo.acceptInvitation(exec, i.invitationId, now()))) return false;
+        await repo.activateInvitedAccount(exec, i.userId, now());
+        if (!(await repo.activeAssignment(exec, i.userId, i.role))) {
+          await repo.insertAssignment(exec, {
+            userId: i.userId,
+            role: i.role,
+            instructorType: i.instructorType,
+            assignedBy: i.invitedBy,
+            at: now(),
+          });
+        }
+        await audit.record(tx, {
+          actorId: i.invitedBy,
+          action: 'identity.role.assigned',
+          subjectType: 'user_account',
+          subjectId: i.userId,
+          after: { role: i.role, instructorType: i.instructorType, via: 'invitation' },
+          correlationId: correlation(),
+        });
+        return true;
+      });
+      if (!accepted) return invalid;
+      await ctx.internalAdapter.updatePassword(i.userId, hash);
+      await repo.setPasswordChangedAt(db, i.userId, now());
+      await repo.deleteSessionsOfUser(db, i.userId);
+      emit('staff_role_changed', { role: i.role, change: 'assigned' });
+      return ok({ email: found.email });
+    },
+  };
+
   // ------------------------------------------------------------------- roles
   const roles = {
     async assign(
@@ -1110,6 +1380,7 @@ export function createIdentity(deps: IdentityDeps) {
     roles,
     staffDirectory,
     staffMember,
+    staffInvites,
     findAccountForStaffing,
     hasRole,
     displayNamesOf,

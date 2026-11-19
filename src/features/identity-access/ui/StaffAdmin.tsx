@@ -1,9 +1,19 @@
-// US1.6 Staff and roles (Admin with two-step sign-in): who holds which staff role, finding an account
-// by its email to give it a role (an Instructor is Employee or Contracted), and taking a role away
-// behind a confirmation. Two-step status is shown, since staff must use it (US1.7).
-import { useForm } from '@tanstack/react-form';
+// US1.6 Staff and roles (Admin with two-step sign-in). Adding staff is one form: name, email,
+// language, role and (for an Instructor) Employee or Contracted. A verified account gets the role at
+// once; anyone else is emailed a link to set a password, and gets the role when they do. Open
+// invitations can be sent again or cancelled. Current staff link to their profile; a role is taken
+// away behind a confirmation. Two-step status is shown, since staff must use it (US1.7).
 import { Link } from '@tanstack/react-router';
-import { ShieldAlert, ShieldCheck, UserPlus, Users } from 'lucide-react';
+import {
+  MailCheck,
+  MailPlus,
+  Send,
+  ShieldAlert,
+  ShieldCheck,
+  UserPlus,
+  Users,
+  X,
+} from 'lucide-react';
 import { useState } from 'react';
 import { useI18n } from '#src/lib/i18n/react.tsx';
 import { Button } from '@/components/ui/button';
@@ -11,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 type StaffRole = 'instructor' | 'admin' | 'finance';
+type InstructorType = 'employee' | 'contractor';
 export type StaffMember = {
   userId: string;
   name: string;
@@ -18,16 +29,28 @@ export type StaffMember = {
   hasTwoStep: boolean;
   roles: Array<{
     role: StaffRole;
-    instructorType: 'employee' | 'contractor' | null;
+    instructorType: InstructorType | null;
     since: string;
   }>;
 };
-export type StaffCandidate = {
+export type StaffInvitation = {
+  invitationId: string;
   userId: string;
   name: string;
   email: string;
-  isEmailVerified: boolean;
-  status: string;
+  role: StaffRole;
+  instructorType: InstructorType | null;
+  invitedBy: string;
+  createdAt: string;
+  expiresAt: string;
+  isExpired: boolean;
+};
+export type InviteInput = {
+  name: string;
+  email: string;
+  locale: 'bn' | 'en';
+  role: StaffRole;
+  instructorType?: InstructorType;
 };
 type Outcome<T = unknown> =
   | { ok: true; value?: T }
@@ -42,139 +65,285 @@ export function staffErrorKey(code: string): string {
     CONFLICT: 'staff.error.alreadyHeld',
     LAST_ADMIN: 'staff.error.lastAdmin',
     VALIDATION_FAILED: 'staff.error.type',
+    ALREADY_INVITED: 'errors.identity.ALREADY_INVITED',
+    INVITE_INVALID: 'errors.identity.INVITE_INVALID',
   };
   return known[code] ?? 'staff.error.generic';
 }
 
 const card = 'flex flex-col gap-4 border border-primary/15 bg-background p-5';
+const choice = (isOn: boolean) =>
+  `flex min-h-11 cursor-pointer items-start gap-2.5 rounded-sm border px-3 py-2.5 text-sm transition-colors has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50 ${isOn ? 'border-primary bg-primary/5' : 'border-primary/20 hover:border-primary/40'}`;
 
-function AddRole(props: {
-  onFind: (email: string) => Promise<Outcome<StaffCandidate>>;
-  onAssign: (input: {
-    userId: string;
-    role: StaffRole;
-    instructorType?: 'employee' | 'contractor';
-  }) => Promise<Outcome>;
+type Added =
+  | { kind: 'assigned'; userId: string; name: string }
+  | { kind: 'invited'; email: string };
+
+function AddStaff(props: {
+  onInvite: (
+    input: InviteInput,
+  ) => Promise<Outcome<{ mode: 'assigned' | 'invited'; userId: string }>>;
 }) {
   const { t, tDynamic } = useI18n();
-  const [found, setFound] = useState<StaffCandidate | null>(null);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [locale, setLocale] = useState<'bn' | 'en'>('bn');
   const [role, setRole] = useState<StaffRole>('instructor');
-  const [type, setType] = useState<'employee' | 'contractor'>('contractor');
-  const [message, setMessage] = useState<{ ok: boolean; key: string } | null>(null);
-  const form = useForm({
-    defaultValues: { email: '' },
-    onSubmit: async ({ value }) => {
-      setMessage(null);
-      setFound(null);
-      const r = await props.onFind(value.email.trim());
-      if (r.ok && r.value) setFound(r.value);
-      else
-        setMessage({ ok: false, key: r.ok ? 'staff.error.notFound' : staffErrorKey(r.error.code) });
-    },
-  });
-  const assign = async () => {
-    if (!found) return;
-    const r = await props.onAssign({
-      userId: found.userId,
+  const [type, setType] = useState<InstructorType>('contractor');
+  const [error, setError] = useState<string | null>(null);
+  const [added, setAdded] = useState<Added | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const submit = async () => {
+    setError(null);
+    setAdded(null);
+    if (name.trim().length < 2) return setError('staff.add.nameRequired');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return setError('staff.add.emailInvalid');
+    setIsSaving(true);
+    const r = await props.onInvite({
+      name: name.trim(),
+      email: email.trim(),
+      locale,
       role,
       ...(role === 'instructor' ? { instructorType: type } : {}),
     });
-    setMessage(
-      r.ok ? { ok: true, key: 'staff.assigned' } : { ok: false, key: staffErrorKey(r.error.code) },
+    setIsSaving(false);
+    if (!r.ok) return setError(staffErrorKey(r.error.code));
+    setAdded(
+      r.value?.mode === 'assigned'
+        ? { kind: 'assigned', userId: r.value.userId, name: name.trim() }
+        : { kind: 'invited', email: email.trim() },
     );
-    if (r.ok) setFound(null);
+    setName('');
+    setEmail('');
   };
   return (
     <section className={card} aria-labelledby="staff-add" data-testid="staff-add">
-      <h2 id="staff-add" className="flex items-center gap-2 text-xl font-bold">
-        <UserPlus aria-hidden="true" className="size-5 text-primary" />
-        {t('staff.add.title')}
-      </h2>
+      <div className="grid gap-1">
+        <h2 id="staff-add" className="flex items-center gap-2 text-xl font-bold">
+          <UserPlus aria-hidden="true" className="size-5 text-primary" />
+          {t('staff.add.title')}
+        </h2>
+        <p className="max-w-[65ch] text-sm text-ink-muted">{t('staff.add.intro')}</p>
+      </div>
       <form
         noValidate
-        className="flex flex-wrap items-end gap-3"
+        className="grid gap-5"
         onSubmit={(e) => {
           e.preventDefault();
-          void form.handleSubmit();
+          void submit();
         }}
       >
-        <form.Field name="email">
-          {(field) => (
-            <div className="grid min-w-64 flex-1 gap-1.5">
-              <Label htmlFor="staff-email">{t('staff.add.email')}</Label>
-              <Input
-                id="staff-email"
-                type="email"
-                autoComplete="off"
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.target.value)}
-              />
-            </div>
-          )}
-        </form.Field>
-        <Button type="submit" variant="outline">
-          {t('staff.add.find')}
-        </Button>
-      </form>
-      {found ? (
-        <div
-          className="flex flex-col gap-3 border-t border-primary/10 pt-3"
-          data-testid="staff-candidate"
-        >
-          <p className="font-semibold">
-            {found.name} · <span className="font-normal">{found.email}</span>
-          </p>
-          <fieldset className="flex flex-wrap gap-2">
-            <legend className="mb-1 text-sm font-medium">{t('staff.add.role')}</legend>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-1.5">
+            <Label htmlFor="staff-name">{t('staff.add.name')}</Label>
+            <Input
+              id="staff-name"
+              autoComplete="off"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              data-testid="staff-name"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="staff-email">{t('staff.add.email')}</Label>
+            <Input
+              id="staff-email"
+              type="email"
+              autoComplete="off"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              data-testid="staff-email"
+            />
+          </div>
+        </div>
+        <fieldset className="grid gap-2">
+          <legend className="mb-1 text-sm font-medium">{t('staff.add.role')}</legend>
+          <div className="grid gap-2 sm:grid-cols-3">
             {(['instructor', 'admin', 'finance'] as const).map((r) => (
-              <label
-                key={r}
-                className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-sm border px-3 text-sm ${role === r ? 'border-primary bg-primary/5 font-semibold' : 'border-primary/20'}`}
-              >
+              <label key={r} className={choice(role === r)}>
                 <input
                   type="radio"
                   name="staff-role"
-                  className="size-4 accent-primary"
+                  className="mt-0.5 size-4 shrink-0 accent-primary"
                   checked={role === r}
                   onChange={() => setRole(r)}
                 />
-                {t(`staff.role.${r}`)}
+                <span className="grid gap-0.5">
+                  <span className="font-semibold">{t(`staff.role.${r}`)}</span>
+                  <span className="text-xs text-ink-muted">{t(`staff.roleHint.${r}`)}</span>
+                </span>
               </label>
             ))}
-          </fieldset>
-          {role === 'instructor' ? (
-            <fieldset className="flex flex-wrap gap-2">
-              <legend className="mb-1 text-sm font-medium">{t('staff.add.type')}</legend>
+          </div>
+        </fieldset>
+        {role === 'instructor' ? (
+          <fieldset className="grid gap-2">
+            <legend className="mb-1 text-sm font-medium">{t('staff.add.type')}</legend>
+            <div className="grid gap-2 sm:grid-cols-2">
               {(['employee', 'contractor'] as const).map((k) => (
-                <label
-                  key={k}
-                  className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-sm border px-3 text-sm ${type === k ? 'border-primary bg-primary/5 font-semibold' : 'border-primary/20'}`}
-                >
+                <label key={k} className={choice(type === k)}>
                   <input
                     type="radio"
                     name="staff-type"
-                    className="size-4 accent-primary"
+                    className="mt-0.5 size-4 shrink-0 accent-primary"
                     checked={type === k}
                     onChange={() => setType(k)}
                   />
-                  {t(`staff.type.${k}`)}
+                  <span className="grid gap-0.5">
+                    <span className="font-semibold">{t(`staff.type.${k}`)}</span>
+                    <span className="text-xs text-ink-muted">{t(`staff.typeHint.${k}`)}</span>
+                  </span>
                 </label>
               ))}
-            </fieldset>
-          ) : null}
-          <Button className="w-fit" onClick={() => void assign()} data-testid="staff-assign">
-            {t('staff.add.assign')}
-          </Button>
-        </div>
-      ) : null}
-      {message ? (
-        <p
-          role={message.ok ? 'status' : 'alert'}
-          className={`text-sm ${message.ok ? '' : 'text-destructive'}`}
-        >
-          {tDynamic(message.key)}
-        </p>
-      ) : null}
+            </div>
+          </fieldset>
+        ) : null}
+        <fieldset className="grid gap-2">
+          <legend className="mb-1 text-sm font-medium">{t('staff.add.language')}</legend>
+          <div className="flex flex-wrap gap-2">
+            {(['bn', 'en'] as const).map((l) => (
+              <label key={l} className={choice(locale === l)}>
+                <input
+                  type="radio"
+                  name="staff-locale"
+                  className="mt-0.5 size-4 shrink-0 accent-primary"
+                  checked={locale === l}
+                  onChange={() => setLocale(l)}
+                />
+                <span className="font-semibold">{t(`staffProfile.language.${l}`)}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        {error ? (
+          <p role="alert" className="text-sm font-medium text-destructive">
+            {tDynamic(error)}
+          </p>
+        ) : null}
+        {added ? (
+          <p
+            role="status"
+            className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-sm border border-pass/40 bg-pass/10 px-3 py-2 text-sm font-medium text-pass"
+            data-testid="staff-added"
+          >
+            <MailCheck aria-hidden="true" className="size-4 shrink-0" />
+            {added.kind === 'invited'
+              ? t('staff.added.invited', { email: added.email })
+              : t('staff.added.assigned', { name: added.name })}
+            {added.kind === 'assigned' ? (
+              <Link
+                to="/admin/staff/$userId"
+                params={{ userId: added.userId }}
+                className="underline underline-offset-4"
+              >
+                {t('staff.added.open')}
+              </Link>
+            ) : null}
+          </p>
+        ) : null}
+        <Button type="submit" className="w-fit" disabled={isSaving} data-testid="staff-assign">
+          <MailPlus aria-hidden="true" />
+          {t('staff.add.submit')}
+        </Button>
+      </form>
+    </section>
+  );
+}
+
+function Invitations(props: {
+  invitations: StaffInvitation[];
+  onResend: (invitationId: string) => Promise<Outcome>;
+  onCancel: (invitationId: string) => Promise<Outcome>;
+}) {
+  const { t, tDynamic, formatDate } = useI18n();
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ id: string; ok: boolean; key: string } | null>(null);
+  if (props.invitations.length === 0) return null;
+  const act = async (id: string, run: (id: string) => Promise<Outcome>, okKey: string) => {
+    const r = await run(id);
+    setConfirming(null);
+    setMessage({ id, ok: r.ok, key: r.ok ? okKey : staffErrorKey(r.error.code) });
+  };
+  return (
+    <section className={card} aria-labelledby="staff-invites" data-testid="staff-invites">
+      <h2 id="staff-invites" className="flex items-center gap-2 text-xl font-bold">
+        <Send aria-hidden="true" className="size-5 text-primary" />
+        {t('staff.invites.title')}
+      </h2>
+      <ul className="flex flex-col divide-y divide-primary/10">
+        {props.invitations.map((i) => (
+          <li key={i.invitationId} className="flex flex-col gap-2 py-3" data-testid="staff-invite">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <span className="font-semibold">
+                {i.name} · <span className="font-normal text-ink/80">{i.email}</span>
+              </span>
+              <span className="text-sm font-medium">
+                {t(`staff.role.${i.role}`)}
+                {i.instructorType ? ` · ${t(`staff.type.${i.instructorType}`)}` : null}
+              </span>
+            </div>
+            <p className={`text-xs ${i.isExpired ? 'font-semibold text-omr' : 'text-ink-muted'}`}>
+              {i.isExpired
+                ? t('staff.invites.expired', {
+                    by: i.invitedBy || t('staff.someAdmin'),
+                    sent: formatDate(i.createdAt),
+                  })
+                : t('staff.invites.open', {
+                    by: i.invitedBy || t('staff.someAdmin'),
+                    sent: formatDate(i.createdAt),
+                    until: formatDate(i.expiresAt),
+                  })}
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void act(i.invitationId, props.onResend, 'staff.invites.resent')}
+                data-testid="staff-invite-resend"
+              >
+                <Send aria-hidden="true" />
+                {t('staff.invites.resend')}
+              </Button>
+              {confirming === i.invitationId ? (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-omr text-omr"
+                    onClick={() =>
+                      void act(i.invitationId, props.onCancel, 'staff.invites.cancelled')
+                    }
+                  >
+                    {t('staff.invites.cancelYes')}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setConfirming(null)}>
+                    {t('staff.revoke.no')}
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-omr"
+                  onClick={() => setConfirming(i.invitationId)}
+                  data-testid="staff-invite-cancel"
+                >
+                  <X aria-hidden="true" />
+                  {t('staff.invites.cancel')}
+                </Button>
+              )}
+            </div>
+            {message?.id === i.invitationId ? (
+              <p
+                role={message.ok ? 'status' : 'alert'}
+                className={`text-xs ${message.ok ? 'text-pass' : 'text-destructive'}`}
+              >
+                {tDynamic(message.key)}
+              </p>
+            ) : null}
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
@@ -241,12 +410,12 @@ function RoleChip(props: {
 
 export function StaffAdmin(props: {
   staff: StaffMember[];
-  onFind: (email: string) => Promise<Outcome<StaffCandidate>>;
-  onAssign: (input: {
-    userId: string;
-    role: StaffRole;
-    instructorType?: 'employee' | 'contractor';
-  }) => Promise<Outcome>;
+  invitations: StaffInvitation[];
+  onInvite: (
+    input: InviteInput,
+  ) => Promise<Outcome<{ mode: 'assigned' | 'invited'; userId: string }>>;
+  onResendInvite: (invitationId: string) => Promise<Outcome>;
+  onCancelInvite: (invitationId: string) => Promise<Outcome>;
   onRevoke: (userId: string, role: StaffRole) => Promise<Outcome>;
 }) {
   const { t } = useI18n();
@@ -256,7 +425,12 @@ export function StaffAdmin(props: {
         <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">{t('staff.title')}</h1>
         <p className="text-ink/75">{t('staff.subtitle')}</p>
       </header>
-      <AddRole onFind={props.onFind} onAssign={props.onAssign} />
+      <AddStaff onInvite={props.onInvite} />
+      <Invitations
+        invitations={props.invitations}
+        onResend={props.onResendInvite}
+        onCancel={props.onCancelInvite}
+      />
       <section className={card} aria-labelledby="staff-list">
         <h2 id="staff-list" className="flex items-center gap-2 text-xl font-bold">
           <Users aria-hidden="true" className="size-5 text-primary" />
@@ -275,7 +449,7 @@ export function StaffAdmin(props: {
                       className="text-primary underline-offset-4 hover:underline"
                       data-testid="staff-open"
                     >
-                      {m.name}
+                      {m.name || m.email}
                     </Link>{' '}
                     · <span className="font-normal text-ink/80">{m.email}</span>
                   </span>

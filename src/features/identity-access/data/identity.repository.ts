@@ -7,6 +7,7 @@ import {
   pushSubscription,
   rateLimitBucket,
   recoveryCode,
+  staffInvitation,
   staffRoleAssignment,
   twoFactorCredential,
   userAccount,
@@ -361,6 +362,156 @@ export function createIdentityRepository() {
         .where(isNull(staffRoleAssignment.revokedAt))
         .orderBy(userAccount.name)
         .limit(500);
+    },
+
+    // ------------------------------------------------------------ staff invitations
+    async insertInvitation(
+      db: Executor,
+      input: {
+        userId: string;
+        role: StaffRole;
+        instructorType: 'employee' | 'contractor' | null;
+        tokenHash: string;
+        invitedBy: string;
+        expiresAt: Date;
+        at: Date;
+      },
+    ) {
+      const [row] = await db
+        .insert(staffInvitation)
+        .values({
+          userId: input.userId,
+          role: input.role,
+          instructorType: input.instructorType,
+          tokenHash: input.tokenHash,
+          invitedBy: input.invitedBy,
+          expiresAt: input.expiresAt,
+          createdAt: input.at,
+        })
+        .returning({ invitationId: staffInvitation.invitationId });
+      return row as { invitationId: string };
+    },
+
+    /** The open (neither accepted nor cancelled) invitation for this person and role, if any. */
+    async openInvitationFor(db: Executor, userId: string, role: StaffRole) {
+      const [row] = await db
+        .select()
+        .from(staffInvitation)
+        .where(
+          and(
+            eq(staffInvitation.userId, userId),
+            eq(staffInvitation.role, role),
+            isNull(staffInvitation.acceptedAt),
+            isNull(staffInvitation.cancelledAt),
+          ),
+        )
+        .limit(1);
+      return row;
+    },
+
+    /** An invitation and its invitee, by token hash or by id. */
+    async invitationWithUser(db: Executor, by: { tokenHash: string } | { invitationId: string }) {
+      const [row] = await db
+        .select({
+          invitation: staffInvitation,
+          name: userAccount.name,
+          email: userAccount.email,
+          locale: userAccount.locale,
+          status: userAccount.status,
+        })
+        .from(staffInvitation)
+        .innerJoin(userAccount, eq(userAccount.id, staffInvitation.userId))
+        .where(
+          'tokenHash' in by
+            ? eq(staffInvitation.tokenHash, by.tokenHash)
+            : eq(staffInvitation.invitationId, by.invitationId),
+        )
+        .limit(1);
+      return row;
+    },
+
+    /** Open invitations, newest first, with the invitee. */
+    async openInvitations(db: Executor) {
+      return db
+        .select({
+          invitationId: staffInvitation.invitationId,
+          userId: staffInvitation.userId,
+          role: staffInvitation.role,
+          instructorType: staffInvitation.instructorType,
+          invitedBy: staffInvitation.invitedBy,
+          createdAt: staffInvitation.createdAt,
+          expiresAt: staffInvitation.expiresAt,
+          name: userAccount.name,
+          email: userAccount.email,
+        })
+        .from(staffInvitation)
+        .innerJoin(userAccount, eq(userAccount.id, staffInvitation.userId))
+        .where(and(isNull(staffInvitation.acceptedAt), isNull(staffInvitation.cancelledAt)))
+        .orderBy(desc(staffInvitation.createdAt))
+        .limit(200);
+    },
+
+    /** Claims an open, unexpired invitation; false when it was used, cancelled or has expired. */
+    async acceptInvitation(db: Executor, invitationId: string, at: Date): Promise<boolean> {
+      const rows = await db
+        .update(staffInvitation)
+        .set({ acceptedAt: at })
+        .where(
+          and(
+            eq(staffInvitation.invitationId, invitationId),
+            isNull(staffInvitation.acceptedAt),
+            isNull(staffInvitation.cancelledAt),
+            gt(staffInvitation.expiresAt, at),
+          ),
+        )
+        .returning({ id: staffInvitation.invitationId });
+      return rows.length > 0;
+    },
+
+    async cancelInvitation(db: Executor, invitationId: string, by: string, at: Date) {
+      const rows = await db
+        .update(staffInvitation)
+        .set({ cancelledAt: at, cancelledBy: by })
+        .where(
+          and(
+            eq(staffInvitation.invitationId, invitationId),
+            isNull(staffInvitation.acceptedAt),
+            isNull(staffInvitation.cancelledAt),
+          ),
+        )
+        .returning({ id: staffInvitation.invitationId });
+      return rows.length > 0;
+    },
+
+    /** A new link for an open invitation: the old token stops working. */
+    async renewInvitation(db: Executor, invitationId: string, tokenHash: string, expiresAt: Date) {
+      const rows = await db
+        .update(staffInvitation)
+        .set({ tokenHash, expiresAt })
+        .where(
+          and(
+            eq(staffInvitation.invitationId, invitationId),
+            isNull(staffInvitation.acceptedAt),
+            isNull(staffInvitation.cancelledAt),
+          ),
+        )
+        .returning({ id: staffInvitation.invitationId });
+      return rows.length > 0;
+    },
+
+    /** The invitee proved they own the email by using the link: the account becomes active. */
+    async activateInvitedAccount(db: Executor, userId: string, at: Date) {
+      await db
+        .update(userAccount)
+        .set({
+          emailVerified: true,
+          emailVerifiedAt: sql`coalesce(${userAccount.emailVerifiedAt}, ${at})`,
+          status: 'active',
+          updatedAt: at,
+        })
+        .where(
+          and(eq(userAccount.id, userId), inArray(userAccount.status, ['unverified', 'active'])),
+        );
     },
 
     /** Every role this account has held, current and taken away, newest first. */

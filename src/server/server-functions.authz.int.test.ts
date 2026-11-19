@@ -45,6 +45,12 @@ const EXPECTED: Record<string, DeclaredAccess> = {
   listGoalBundles: 'public',
   listStaff: 'role:admin',
   getStaffMember: 'role:admin',
+  inviteStaff: 'role:admin',
+  listStaffInvites: 'role:admin',
+  resendStaffInvite: 'role:admin',
+  cancelStaffInvite: 'role:admin',
+  getStaffInvite: 'public',
+  acceptStaffInvite: 'public',
   getInstructorEarnings: 'role:admin',
   getInstructorPayoutCycles: 'role:admin',
   getInstructorCycleStatement: 'role:admin',
@@ -425,10 +431,10 @@ afterAll(async () => {
 });
 
 describe('declared access of every server function', () => {
-  it('finds all 248 server functions and every one has an expected-access entry', () => {
+  it('finds all 254 server functions and every one has an expected-access entry', () => {
     expect(new Set(declaredNames)).toEqual(new Set(Object.keys(fns)));
     expect(Object.keys(fns).sort()).toEqual(Object.keys(EXPECTED).sort());
-    expect(Object.keys(fns)).toHaveLength(248);
+    expect(Object.keys(fns)).toHaveLength(254);
   });
 
   it.each(Object.entries(EXPECTED))('%s is built with %s', (name, access) => {

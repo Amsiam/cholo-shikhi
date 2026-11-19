@@ -233,7 +233,7 @@ function Overview({ member }: { member: StaffProfileMember }) {
                 <span className="text-sm text-ink-muted">
                   {t('staffProfile.roles.since', {
                     date: formatDate(r.assignedAt),
-                    by: r.assignedBy,
+                    by: r.assignedBy || t('staff.someAdmin'),
                   })}
                 </span>
               </li>
@@ -252,7 +252,7 @@ function Overview({ member }: { member: StaffProfileMember }) {
                   {t('staffProfile.roles.held', {
                     from: formatDate(r.assignedAt),
                     to: formatDate(r.revokedAt ?? r.assignedAt),
-                    by: r.revokedBy ?? '',
+                    by: r.revokedBy || t('staff.someAdmin'),
                   })}
                 </li>
               ))}
@@ -625,7 +625,9 @@ export function StaffProfile(props: {
         {t('staffProfile.back')}
       </Link>
       <header className="grid gap-2">
-        <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">{member.name}</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
+          {member.name || member.email}
+        </h1>
         <div className="flex flex-wrap items-center gap-2 text-sm">
           {member.roles.map((r) => (
             <span

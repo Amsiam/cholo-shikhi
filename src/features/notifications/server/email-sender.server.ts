@@ -4,7 +4,7 @@
 import { randomUUID } from 'node:crypto';
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 
-export type EmailKind = 'verify' | 'reset' | 'notification';
+export type EmailKind = 'verify' | 'reset' | 'staff_invite' | 'notification';
 
 export type EmailMessage = {
   to: string;

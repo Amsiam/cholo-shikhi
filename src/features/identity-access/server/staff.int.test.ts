@@ -2,6 +2,7 @@
 // takes staff roles (an Instructor needs a type), sees the staff list; the last Admin stays.
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { readDevMailbox } from '#src/features/notifications/server/email-sender.server.ts';
 import { getDb } from '#src/server/db.ts';
 import { userAccount } from '#src/server/schema/index.ts';
 import { createServerFnHarness, type ServerFnHarness } from '#src/test/server-fn-harness.ts';
@@ -151,5 +152,144 @@ describe('staff and roles', () => {
         false,
       );
     }
+  });
+
+  describe('inviting staff', () => {
+    const inviteLinkFor = (email: string) => {
+      const mail = readDevMailbox()
+        .filter((m) => m.to === email && m.kind === 'staff_invite')
+        .sort((a, b) => b.sentAt.localeCompare(a.sentAt))[0];
+      if (!mail) throw new Error(`no invite email for ${email}`);
+      return decodeURIComponent(new URL(mail.link).pathname.split('/').pop() ?? '');
+    };
+    type Invites = Array<{ invitationId: string; email: string; role: string; isExpired: boolean }>;
+
+    it('invites a new person; the link sets their password and gives the role', async () => {
+      const email = `invited.${Date.now().toString(36)}@example.test`;
+      const base = { name: 'Nusrat Invited', email, locale: 'en' as const };
+      expect(
+        await s.call('inviteStaff', s.admin.request, { ...base, role: 'instructor' }),
+      ).toMatchObject({ ok: false, error: { code: 'VALIDATION_FAILED' } });
+      const invited = value<{ mode: string; userId: string }>(
+        await s.call('inviteStaff', s.admin.request, {
+          ...base,
+          role: 'instructor',
+          instructorType: 'employee',
+        }),
+      );
+      expect(invited.mode).toBe('invited');
+      expect(
+        await s.call('inviteStaff', s.admin.request, {
+          ...base,
+          role: 'instructor',
+          instructorType: 'employee',
+        }),
+      ).toMatchObject({ ok: false, error: { code: 'ALREADY_INVITED' } });
+      const open = value<Invites>(await s.call('listStaffInvites', s.admin.request, {}));
+      expect(open.find((i) => i.email === email)).toMatchObject({
+        role: 'instructor',
+        isExpired: false,
+      });
+
+      // The emailed link names who is invited, and works once.
+      const token = inviteLinkFor(email);
+      expect(value(await s.call('getStaffInvite', s.anonymous(), { token }))).toMatchObject({
+        name: 'Nusrat Invited',
+        role: 'instructor',
+        state: 'open',
+      });
+      expect(
+        await s.call('acceptStaffInvite', s.anonymous(), { token, password: 'short' }),
+      ).toMatchObject({ ok: false, error: { code: 'VALIDATION_FAILED' } });
+      const password = 'Invited-staff-password-1';
+      value(await s.call('acceptStaffInvite', s.anonymous(), { token, password }));
+      expect(await s.call('acceptStaffInvite', s.anonymous(), { token, password })).toMatchObject({
+        ok: false,
+        error: { code: 'INVITE_INVALID' },
+      });
+      expect(value(await s.call('getStaffInvite', s.anonymous(), { token }))).toMatchObject({
+        state: 'used',
+      });
+
+      // They hold the role (given by the inviting Admin) and can sign in, straight to two-step.
+      const member = value<{ roles: Array<{ role: string; instructorType: string | null }> }>(
+        await s.call('getStaffMember', s.admin.request, { userId: invited.userId }),
+      );
+      expect(member.roles).toEqual([
+        expect.objectContaining({ role: 'instructor', instructorType: 'employee' }),
+      ]);
+      const signIn = await s.h.signIn(s.h.browser(), email, password);
+      expect(signIn.body).toMatchObject({ status: 'signed_in', next: '/two-step' });
+      expect(
+        value<Invites>(await s.call('listStaffInvites', s.admin.request, {})).some(
+          (i) => i.email === email,
+        ),
+      ).toBe(false);
+    });
+
+    it('gives a verified account the role at once, and cancels or resends an invitation', async () => {
+      const person = await s.newStudent();
+      const [account] = await getDb()
+        .select({ email: userAccount.email })
+        .from(userAccount)
+        .where(eq(userAccount.id, person.userId));
+      expect(
+        value<{ mode: string }>(
+          await s.call('inviteStaff', s.admin.request, {
+            name: 'Existing Person',
+            email: account?.email as string,
+            locale: 'bn',
+            role: 'finance',
+          }),
+        ).mode,
+      ).toBe('assigned');
+
+      const email = `cancelled.${Date.now().toString(36)}@example.test`;
+      value(
+        await s.call('inviteStaff', s.admin.request, {
+          name: 'Later Maybe',
+          email,
+          locale: 'bn',
+          role: 'admin',
+        }),
+      );
+      const first = inviteLinkFor(email);
+      const [invite] = value<Invites>(await s.call('listStaffInvites', s.admin.request, {})).filter(
+        (i) => i.email === email,
+      );
+      const invitationId = invite?.invitationId as string;
+      value(await s.call('resendStaffInvite', s.admin.request, { invitationId }));
+      const second = inviteLinkFor(email);
+      expect(second).not.toBe(first);
+      // The old link stopped working when a new one was sent.
+      expect(await s.call('getStaffInvite', s.anonymous(), { token: first })).toMatchObject({
+        ok: false,
+        error: { code: 'INVITE_INVALID' },
+      });
+      value(await s.call('cancelStaffInvite', s.admin.request, { invitationId }));
+      expect(
+        await s.call('acceptStaffInvite', s.anonymous(), {
+          token: second,
+          password: 'Cancelled-invite-password-1',
+        }),
+      ).toMatchObject({ ok: false, error: { code: 'INVITE_INVALID' } });
+    });
+
+    it('lets only an Admin invite, list, resend or cancel', async () => {
+      const student = await s.newStudent();
+      for (const caller of [student.request, s.instructor.request]) {
+        expect(
+          (
+            await s.call('inviteStaff', caller, {
+              name: 'Nope',
+              email: 'nope@example.test',
+              locale: 'en',
+              role: 'admin',
+            })
+          ).ok,
+        ).toBe(false);
+        expect((await s.call('listStaffInvites', caller, {})).ok).toBe(false);
+      }
+    });
   });
 });

@@ -72,6 +72,7 @@ import { Route as MeStreakRouteImport } from './routes/me_.streak'
 import { Route as RCodeRouteImport } from './routes/r.$code'
 import { Route as ResetPasswordIndexRouteImport } from './routes/reset-password/index'
 import { Route as ResetPasswordTokenRouteImport } from './routes/reset-password/$token'
+import { Route as StaffInviteTokenRouteImport } from './routes/staff-invite.$token'
 import { Route as AdminStaffUserIdRouteImport } from './routes/admin_.staff_.$userId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCatalogImagesRouteImport } from './routes/api/catalog/images'
@@ -406,6 +407,11 @@ const ResetPasswordTokenRoute = ResetPasswordTokenRouteImport.update({
   path: '/reset-password/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StaffInviteTokenRoute = StaffInviteTokenRouteImport.update({
+  id: '/staff-invite/$token',
+  path: '/staff-invite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminStaffUserIdRoute = AdminStaffUserIdRouteImport.update({
   id: '/admin_/staff_/$userId',
   path: '/admin/staff/$userId',
@@ -558,6 +564,7 @@ export interface FileRoutesByFullPath {
   '/me/streak': typeof MeStreakRoute
   '/r/$code': typeof RCodeRoute
   '/reset-password/$token': typeof ResetPasswordTokenRoute
+  '/staff-invite/$token': typeof StaffInviteTokenRoute
   '/battles/': typeof BattlesIndexRoute
   '/exam-builder/': typeof ExamBuilderIndexRoute
   '/exams/': typeof ExamsIndexRoute
@@ -641,6 +648,7 @@ export interface FileRoutesByTo {
   '/me/streak': typeof MeStreakRoute
   '/r/$code': typeof RCodeRoute
   '/reset-password/$token': typeof ResetPasswordTokenRoute
+  '/staff-invite/$token': typeof StaffInviteTokenRoute
   '/battles': typeof BattlesIndexRoute
   '/exam-builder': typeof ExamBuilderIndexRoute
   '/exams': typeof ExamsIndexRoute
@@ -725,6 +733,7 @@ export interface FileRoutesById {
   '/me_/streak': typeof MeStreakRoute
   '/r/$code': typeof RCodeRoute
   '/reset-password/$token': typeof ResetPasswordTokenRoute
+  '/staff-invite/$token': typeof StaffInviteTokenRoute
   '/battles/': typeof BattlesIndexRoute
   '/exam-builder/': typeof ExamBuilderIndexRoute
   '/exams/': typeof ExamsIndexRoute
@@ -810,6 +819,7 @@ export interface FileRouteTypes {
     | '/me/streak'
     | '/r/$code'
     | '/reset-password/$token'
+    | '/staff-invite/$token'
     | '/battles/'
     | '/exam-builder/'
     | '/exams/'
@@ -893,6 +903,7 @@ export interface FileRouteTypes {
     | '/me/streak'
     | '/r/$code'
     | '/reset-password/$token'
+    | '/staff-invite/$token'
     | '/battles'
     | '/exam-builder'
     | '/exams'
@@ -976,6 +987,7 @@ export interface FileRouteTypes {
     | '/me_/streak'
     | '/r/$code'
     | '/reset-password/$token'
+    | '/staff-invite/$token'
     | '/battles/'
     | '/exam-builder/'
     | '/exams/'
@@ -1060,6 +1072,7 @@ export interface RootRouteChildren {
   MeStreakRoute: typeof MeStreakRoute
   RCodeRoute: typeof RCodeRoute
   ResetPasswordTokenRoute: typeof ResetPasswordTokenRoute
+  StaffInviteTokenRoute: typeof StaffInviteTokenRoute
   BattlesIndexRoute: typeof BattlesIndexRoute
   ExamBuilderIndexRoute: typeof ExamBuilderIndexRoute
   ExamsIndexRoute: typeof ExamsIndexRoute
@@ -1531,6 +1544,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/staff-invite/$token': {
+      id: '/staff-invite/$token'
+      path: '/staff-invite/$token'
+      fullPath: '/staff-invite/$token'
+      preLoaderRoute: typeof StaffInviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin_/staff_/$userId': {
       id: '/admin_/staff_/$userId'
       path: '/admin/staff/$userId'
@@ -1716,6 +1736,7 @@ const rootRouteChildren: RootRouteChildren = {
   MeStreakRoute: MeStreakRoute,
   RCodeRoute: RCodeRoute,
   ResetPasswordTokenRoute: ResetPasswordTokenRoute,
+  StaffInviteTokenRoute: StaffInviteTokenRoute,
   BattlesIndexRoute: BattlesIndexRoute,
   ExamBuilderIndexRoute: ExamBuilderIndexRoute,
   ExamsIndexRoute: ExamsIndexRoute,

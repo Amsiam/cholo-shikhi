@@ -4,6 +4,7 @@ import { sql } from 'drizzle-orm';
 import {
   bigint,
   boolean,
+  check,
   index,
   integer,
   pgTable,
@@ -178,6 +179,44 @@ export const staffRoleAssignment = pgTable(
   (t) => [
     // BR4.8: a role at most once at a time.
     uniqueIndex('staff_role_active_uq').on(t.userId, t.role).where(sql`${t.revokedAt} is null`),
+  ],
+);
+
+/**
+ * An Admin's invitation for someone to join as staff. The role is given only when the invitee opens
+ * the emailed link and sets a password (which also proves they own the email); until then the
+ * account cannot sign in. Only the token's hash is stored.
+ */
+export const staffInvitation = pgTable(
+  'staff_invitation',
+  {
+    invitationId: uuid('invitation_id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => userAccount.id),
+    role: text('role', { enum: ['instructor', 'admin', 'finance'] }).notNull(),
+    instructorType: text('instructor_type', { enum: ['employee', 'contractor'] }),
+    tokenHash: text('token_hash').notNull(),
+    invitedBy: uuid('invited_by')
+      .notNull()
+      .references(() => userAccount.id),
+    createdAt: ts('created_at').notNull().defaultNow(),
+    expiresAt: ts('expires_at').notNull(),
+    acceptedAt: ts('accepted_at'),
+    cancelledAt: ts('cancelled_at'),
+    cancelledBy: uuid('cancelled_by').references(() => userAccount.id),
+  },
+  (t) => [
+    uniqueIndex('staff_invitation_token_uq').on(t.tokenHash),
+    // One open invitation per person and role.
+    uniqueIndex('staff_invitation_open_uq')
+      .on(t.userId, t.role)
+      .where(sql`${t.acceptedAt} is null and ${t.cancelledAt} is null`),
+    // An Instructor invitation names the type; other roles never do (as for role assignments).
+    check(
+      'staff_invitation_type_ck',
+      sql`(${t.role} = 'instructor') = (${t.instructorType} is not null)`,
+    ),
   ],
 );
 

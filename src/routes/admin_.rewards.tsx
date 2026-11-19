@@ -1,4 +1,5 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router';
+import { AccessDenied } from '#src/features/app-shell/ui/ErrorScreen.tsx';
 import { getRewardSettings } from '#src/features/learning/server/learning.functions.ts';
 import {
   REWARD_SETTING_KEYS,
@@ -27,12 +28,7 @@ function RewardsPage() {
   const { t } = useI18n();
   const data = Route.useLoaderData();
   const router = useRouter();
-  if (data.denied)
-    return (
-      <p role="alert" className="p-6">
-        {t('admin.denied')}
-      </p>
-    );
+  if (data.denied) return <AccessDenied reason={t('admin.denied')} />;
   const save = async (changed: Partial<RewardSettings>): Promise<Outcome> => {
     for (const [name, value] of Object.entries(changed)) {
       const r = (await saveSetting({

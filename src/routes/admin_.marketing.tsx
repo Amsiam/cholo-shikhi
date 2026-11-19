@@ -1,4 +1,5 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router';
+import { AccessDenied } from '#src/features/app-shell/ui/ErrorScreen.tsx';
 import { listSegments } from '#src/features/goals/server/goals.functions.ts';
 import {
   createBundle,
@@ -36,12 +37,7 @@ function MarketingPage() {
   const { t } = useI18n();
   const data = Route.useLoaderData();
   const router = useRouter();
-  if (data.denied)
-    return (
-      <p role="alert" className="p-6">
-        {t('errors.marketing.forbidden')}
-      </p>
-    );
+  if (data.denied) return <AccessDenied reason={t('errors.marketing.forbidden')} />;
   const refresh = async (r: unknown) => {
     const outcome = r as Outcome;
     if (outcome.ok) await router.invalidate();

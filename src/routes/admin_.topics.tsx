@@ -1,4 +1,5 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router';
+import { AccessDenied } from '#src/features/app-shell/ui/ErrorScreen.tsx';
 import {
   getQuestionTaxonomy,
   saveQuestionSubject,
@@ -36,12 +37,7 @@ function TopicsPage() {
   const { t } = useI18n();
   const data = Route.useLoaderData();
   const router = useRouter();
-  if (data.denied)
-    return (
-      <p role="alert" className="p-6">
-        {t('admin.denied')}
-      </p>
-    );
+  if (data.denied) return <AccessDenied reason={t('admin.denied')} />;
   return (
     <div className="min-h-[calc(100dvh-3.5rem)] bg-paper text-ink">
       <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">

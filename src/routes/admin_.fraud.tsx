@@ -1,5 +1,6 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router';
 import { z } from 'zod';
+import { AccessDenied } from '#src/features/app-shell/ui/ErrorScreen.tsx';
 import {
   decideFraudFlag,
   flagFraudAccount,
@@ -32,12 +33,7 @@ function FraudPage() {
   const { kind } = Route.useSearch();
   const navigate = Route.useNavigate();
   const router = useRouter();
-  if (data.denied)
-    return (
-      <p role="alert" className="p-6">
-        {t('errors.fraud.forbidden')}
-      </p>
-    );
+  if (data.denied) return <AccessDenied reason={t('errors.fraud.forbidden')} />;
   const refresh = async (r: Outcome) => {
     if (r.ok) await router.invalidate();
     return r;

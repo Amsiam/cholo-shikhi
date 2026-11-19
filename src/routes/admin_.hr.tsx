@@ -1,5 +1,6 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router';
 import { z } from 'zod';
+import { AccessDenied } from '#src/features/app-shell/ui/ErrorScreen.tsx';
 import {
   findHrInstructor,
   getInstructorHr,
@@ -41,12 +42,7 @@ function HrPage() {
   const data = Route.useLoaderData();
   const navigate = Route.useNavigate();
   const router = useRouter();
-  if (data.denied)
-    return (
-      <p role="alert" className="p-6">
-        {t('errors.hr.forbidden')}
-      </p>
-    );
+  if (data.denied) return <AccessDenied reason={t('errors.hr.forbidden')} />;
   const refresh = async (r: unknown) => {
     const outcome = r as Outcome;
     if (outcome.ok) await router.invalidate();

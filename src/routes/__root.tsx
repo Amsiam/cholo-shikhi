@@ -7,11 +7,17 @@ import {
   useRouter,
   useRouterState,
 } from '@tanstack/react-router';
+import { RotateCw } from 'lucide-react';
 import { type ReactNode, useEffect } from 'react';
 import type { ShellState } from '#src/features/app-shell/server/shell.functions.ts';
 import { getShellState, setLanguage } from '#src/features/app-shell/server/shell.functions.ts';
 import { AppHeader } from '#src/features/app-shell/ui/AppHeader.tsx';
 import { InstallPrompt, OfflineBanner, UpdateBanner } from '#src/features/app-shell/ui/Banners.tsx';
+import {
+  ErrorScreen,
+  errorPrimaryAction,
+  errorSecondaryAction,
+} from '#src/features/app-shell/ui/ErrorScreen.tsx';
 import { StudentShell } from '#src/features/dashboard/ui/StudentShell.tsx';
 import { htmlLang } from '#src/lib/i18n/format.ts';
 import { I18nProvider, useI18n } from '#src/lib/i18n/react.tsx';
@@ -152,19 +158,52 @@ function AppLayout() {
   );
 }
 
-function RootError(props: { reset: () => void }) {
+// Renders in place of the whole layout (a failed root loader leaves no header), so it draws its
+// own wordmark bar. Retrying re-runs the loaders, then clears the error boundary.
+function RootError(props: { error: unknown; reset: () => void }) {
   const { t } = useI18n();
+  const router = useRouter();
+  const message = props.error instanceof Error ? props.error.message : String(props.error);
   return (
-    <main className="mx-auto max-w-xl px-4 py-6" role="alert" data-testid="root-error">
-      <p>{t('shell.error.title')}</p>
-      <button
-        type="button"
-        className="underline"
-        data-testid="root-error-retry"
-        onClick={props.reset}
-      >
-        {t('shell.error.retry')}
-      </button>
+    <main id="main" className="w-full">
+      <ErrorScreen
+        kind="error"
+        standalone
+        testId="root-error"
+        title={t('shell.error.title')}
+        body={t('shell.error.body')}
+        actions={
+          <>
+            <button
+              type="button"
+              className={errorPrimaryAction}
+              data-testid="root-error-retry"
+              onClick={async () => {
+                await router.invalidate();
+                props.reset();
+              }}
+            >
+              <RotateCw aria-hidden="true" className="size-4" strokeWidth={2.5} />
+              {t('shell.error.retry')}
+            </button>
+            <a href="/" className={errorSecondaryAction}>
+              {t('errorPage.home')}
+            </a>
+          </>
+        }
+        footer={
+          import.meta.env.DEV && message ? (
+            <details className="text-sm text-ink-muted">
+              <summary className="tap-target cursor-pointer font-medium">
+                {t('errorPage.details')}
+              </summary>
+              <pre className="mt-2 overflow-x-auto bg-paper p-3 text-xs whitespace-pre-wrap">
+                {message}
+              </pre>
+            </details>
+          ) : null
+        }
+      />
     </main>
   );
 }
@@ -172,9 +211,21 @@ function RootError(props: { reset: () => void }) {
 function NotFound() {
   const { t } = useI18n();
   return (
-    <div data-testid="not-found">
-      <p>{t('shell.notFound')}</p>
-      <Link to="/">{t('shell.nav.home')}</Link>
-    </div>
+    <ErrorScreen
+      kind="notFound"
+      testId="not-found"
+      title={t('shell.notFound')}
+      body={t('shell.notFound.body')}
+      actions={
+        <>
+          <Link to="/" className={errorPrimaryAction}>
+            {t('errorPage.home')}
+          </Link>
+          <Link to="/catalog" search={{}} className={errorSecondaryAction}>
+            {t('errorPage.catalog')}
+          </Link>
+        </>
+      }
+    />
   );
 }

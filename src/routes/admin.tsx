@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate, useRouter } from '@tanstack/react-router';
 import { z } from 'zod';
+import { AccessDenied } from '#src/features/app-shell/ui/ErrorScreen.tsx';
 import { listTrialCourseOffers } from '#src/features/commerce/server/commerce.functions.ts';
 import { TrialCapsEditor } from '#src/features/commerce/ui/TrialCapsEditor.tsx';
 import { listAuditLog } from '#src/features/platform/server/audit.functions.ts';
@@ -54,11 +55,7 @@ function AdminPage() {
   const navigate = useNavigate({ from: '/admin' });
   const router = useRouter();
   if (data.denied) {
-    return (
-      <p role="alert" data-testid="admin-denied">
-        {t('admin.denied')}
-      </p>
-    );
+    return <AccessDenied reason={t('admin.denied')} testId="admin-denied" />;
   }
   const flagColumns: Array<Column<FlagRow>> = [
     { accessorKey: 'flagKey', header: () => t('admin.flags.key') },

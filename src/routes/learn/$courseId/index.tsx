@@ -1,5 +1,10 @@
 import { createFileRoute, Link, notFound, redirect, useRouter } from '@tanstack/react-router';
 import { getShellState } from '#src/features/app-shell/server/shell.functions.ts';
+import {
+  ErrorScreen,
+  errorPrimaryAction,
+  errorSecondaryAction,
+} from '#src/features/app-shell/ui/ErrorScreen.tsx';
 import type { StudentExamCard } from '#src/features/assessment/index.ts';
 import {
   answerMyCourseNps,
@@ -7,7 +12,6 @@ import {
   getMyLearningCourse,
 } from '#src/features/learning/server/learning.functions.ts';
 import { CourseHomeView } from '#src/features/learning/ui/CourseHomeView.tsx';
-import { learnContainer } from '#src/features/learning/ui/learning-parts.tsx';
 import { useI18n } from '#src/lib/i18n/react.tsx';
 
 // A purchased course's learning dashboard. Without an active enrolment the course answers
@@ -58,14 +62,21 @@ function CourseHomePage() {
 export function NotEnrolled() {
   const { t } = useI18n();
   return (
-    <section className="min-h-[calc(100dvh-3.5rem)] bg-paper" data-testid="learn-not-found">
-      <div className={`${learnContainer} flex flex-col items-start gap-3 py-16`}>
-        <h1 className="text-3xl font-bold">{t('learn.notEnrolled.title')}</h1>
-        <p className="text-ink/75">{t('learn.notEnrolled.body')}</p>
-        <Link to="/learn" className="font-semibold text-primary underline underline-offset-4">
-          {t('learn.myCourses.title')}
-        </Link>
-      </div>
-    </section>
+    <ErrorScreen
+      kind="notFound"
+      testId="learn-not-found"
+      title={t('learn.notEnrolled.title')}
+      body={t('learn.notEnrolled.body')}
+      actions={
+        <>
+          <Link to="/learn" className={errorPrimaryAction}>
+            {t('learn.myCourses.title')}
+          </Link>
+          <Link to="/catalog" search={{}} className={errorSecondaryAction}>
+            {t('errorPage.catalog')}
+          </Link>
+        </>
+      }
+    />
   );
 }

@@ -1,4 +1,5 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router';
+import { AccessDenied } from '#src/features/app-shell/ui/ErrorScreen.tsx';
 import { saveSetting } from '#src/features/platform/server/settings.functions.ts';
 import {
   decideReferralWithdrawal,
@@ -25,12 +26,7 @@ function ReferralsAdminPage() {
   const { t } = useI18n();
   const loaded = Route.useLoaderData();
   const router = useRouter();
-  if (loaded.denied)
-    return (
-      <p role="alert" className="p-6">
-        {t('errors.referral.forbidden')}
-      </p>
-    );
+  if (loaded.denied) return <AccessDenied reason={t('errors.referral.forbidden')} />;
   const refresh = async (r: unknown) => {
     const outcome = r as Outcome;
     if (outcome.ok) await router.invalidate();

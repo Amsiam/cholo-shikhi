@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router';
 import { z } from 'zod';
+import { AccessDenied } from '#src/features/app-shell/ui/ErrorScreen.tsx';
 import {
   listExamPackagesAdmin,
   publishExamPackage,
@@ -49,11 +50,7 @@ function ExamPackagesPage() {
   const router = useRouter();
   const navigate = useNavigate({ from: '/admin/exam-packages' });
   if (data.denied) {
-    return (
-      <p role="alert" data-testid="exam-packages-denied">
-        {t('admin.denied')}
-      </p>
-    );
+    return <AccessDenied reason={t('admin.denied')} testId="exam-packages-denied" />;
   }
   async function after(result: Outcome): Promise<SaveOutcome> {
     await router.invalidate();

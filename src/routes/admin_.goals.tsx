@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router';
 import { z } from 'zod';
+import { AccessDenied } from '#src/features/app-shell/ui/ErrorScreen.tsx';
 import {
   deleteSegment,
   listGoalsAdmin,
@@ -59,11 +60,7 @@ function GoalsAdminPage() {
   const router = useRouter();
   const navigate = useNavigate({ from: '/admin/goals' });
   if (data.denied) {
-    return (
-      <p role="alert" data-testid="goals-admin-denied">
-        {t('goals.admin.denied')}
-      </p>
-    );
+    return <AccessDenied reason={t('goals.admin.denied')} testId="goals-admin-denied" />;
   }
   const pages = (total: number) => Math.max(1, Math.ceil(total / PAGE_SIZE));
   async function after(result: Outcome) {

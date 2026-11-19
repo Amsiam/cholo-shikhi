@@ -1,4 +1,5 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router';
+import { AccessDenied } from '#src/features/app-shell/ui/ErrorScreen.tsx';
 import {
   decideSwitchRequest,
   listSwitchRequests,
@@ -24,12 +25,7 @@ function SwitchesPage() {
   const { t } = useI18n();
   const data = Route.useLoaderData();
   const router = useRouter();
-  if (data.denied)
-    return (
-      <p role="alert" className="p-6">
-        {t('errors.switch.forbidden')}
-      </p>
-    );
+  if (data.denied) return <AccessDenied reason={t('errors.switch.forbidden')} />;
   return (
     <div className="min-h-[calc(100dvh-3.5rem)] bg-paper text-ink">
       <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">

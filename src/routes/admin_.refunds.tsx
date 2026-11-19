@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router';
 import { z } from 'zod';
+import { AccessDenied } from '#src/features/app-shell/ui/ErrorScreen.tsx';
 import {
   decideRefundRequest,
   listRefundRequests,
@@ -48,12 +49,7 @@ function RefundsPage() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: '/admin/refunds' });
   const router = useRouter();
-  if (data.denied)
-    return (
-      <p role="alert" className="p-6">
-        {t('admin.denied')}
-      </p>
-    );
+  if (data.denied) return <AccessDenied reason={t('admin.denied')} />;
   const done = async (r: Outcome) => {
     if (r.ok) await router.invalidate();
     return r;

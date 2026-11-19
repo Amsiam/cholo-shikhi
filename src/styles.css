@@ -186,6 +186,29 @@
   height: auto;
 }
 
+/* Error screen: the one filled bubble's ink runs once, from an already-visible mark. */
+@keyframes error-smudge {
+  from {
+    scale: 0.7;
+    opacity: 0.55;
+    filter: blur(1px);
+  }
+  to {
+    scale: 1;
+    opacity: 1;
+    filter: blur(3px);
+  }
+}
+.error-smudge {
+  filter: blur(3px);
+  animation: error-smudge 1100ms cubic-bezier(0.16, 1, 0.3, 1) 150ms both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .error-smudge {
+    animation: none;
+  }
+}
+
 /* Printing (receipts): white paper, no app chrome tints. */
 @media print {
   body,

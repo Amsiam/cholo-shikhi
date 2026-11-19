@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { AccessDenied } from '#src/features/app-shell/ui/ErrorScreen.tsx';
 import { getPlatformBooks } from '#src/features/insights/server/insights.functions.ts';
 import { BooksSearch } from '#src/features/insights/server/insights.schema.ts';
 import type { PlatformFinance } from '#src/features/insights/server/insights.types.ts';
@@ -23,11 +24,7 @@ function FinancePage() {
   const data = Route.useLoaderData();
   const navigate = useNavigate({ from: Route.fullPath });
   if (data.denied) {
-    return (
-      <p role="alert" data-testid="books-denied">
-        {t('admin.denied')}
-      </p>
-    );
+    return <AccessDenied reason={t('admin.denied')} testId="books-denied" />;
   }
   return (
     <div className="min-h-[calc(100dvh-3.5rem)] bg-paper text-ink">

@@ -1,4 +1,5 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router';
+import { AccessDenied } from '#src/features/app-shell/ui/ErrorScreen.tsx';
 import {
   exportDisputeEvidencePack,
   getDisputeEvidencePack,
@@ -26,12 +27,7 @@ function DisputesPage() {
   const { t, locale } = useI18n();
   const data = Route.useLoaderData();
   const router = useRouter();
-  if (data.denied)
-    return (
-      <p role="alert" className="p-6">
-        {t('errors.dispute.forbidden')}
-      </p>
-    );
+  if (data.denied) return <AccessDenied reason={t('errors.dispute.forbidden')} />;
   return (
     <div className="min-h-[calc(100dvh-3.5rem)] bg-paper text-ink">
       <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">

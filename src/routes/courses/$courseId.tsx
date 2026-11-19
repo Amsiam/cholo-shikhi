@@ -2,6 +2,11 @@ import { createFileRoute, getRouteApi, Link, notFound, useRouter } from '@tansta
 import { useState } from 'react';
 import { getShellState } from '#src/features/app-shell/server/shell.functions.ts';
 import {
+  ErrorScreen,
+  errorPrimaryAction,
+  errorSecondaryAction,
+} from '#src/features/app-shell/ui/ErrorScreen.tsx';
+import {
   getCoursePage,
   getPublicCoursePage,
 } from '#src/features/catalog/server/catalog-browse.functions.ts';
@@ -185,18 +190,26 @@ function CoursePageRoute() {
 function CourseNotFound() {
   const { t } = useI18n();
   return (
-    <section className="bg-paper" data-testid="course-not-found">
-      <div className={`${catalogContainer} flex flex-col items-start gap-3 py-16`}>
-        <h1 className="text-3xl font-bold">{t('catalog.course.notFound')}</h1>
-        <Link
-          to="/catalog"
-          search={{}}
-          className="font-medium text-primary underline underline-offset-4"
-          data-testid="course-not-found-back"
-        >
-          {t('catalog.course.backToCatalog')}
-        </Link>
-      </div>
-    </section>
+    <ErrorScreen
+      kind="notFound"
+      testId="course-not-found"
+      title={t('catalog.course.notFound')}
+      body={t('shell.notFound.body')}
+      actions={
+        <>
+          <Link
+            to="/catalog"
+            search={{}}
+            className={errorPrimaryAction}
+            data-testid="course-not-found-back"
+          >
+            {t('catalog.course.backToCatalog')}
+          </Link>
+          <Link to="/" className={errorSecondaryAction}>
+            {t('errorPage.home')}
+          </Link>
+        </>
+      }
+    />
   );
 }

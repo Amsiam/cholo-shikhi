@@ -1,5 +1,6 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router';
 import { getShellState } from '#src/features/app-shell/server/shell.functions.ts';
+import { AccessDenied } from '#src/features/app-shell/ui/ErrorScreen.tsx';
 import {
   commitPayoutCycle,
   dryRunPayoutCycle,
@@ -30,12 +31,7 @@ function PayoutsPage() {
   const { t } = useI18n();
   const loaded = Route.useLoaderData();
   const router = useRouter();
-  if (loaded.denied)
-    return (
-      <p role="alert" className="p-6">
-        {t('admin.denied')}
-      </p>
-    );
+  if (loaded.denied) return <AccessDenied reason={t('admin.denied')} />;
   const refresh = async (r: Outcome) => {
     if (r.ok) await router.invalidate();
     return r;

@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router';
 import { useCallback } from 'react';
 import { z } from 'zod';
+import { AccessDenied } from '#src/features/app-shell/ui/ErrorScreen.tsx';
 import {
   listPlanItemCandidates,
   listPlansAdmin,
@@ -58,11 +59,7 @@ function PlansPage() {
     return [...value.courses, ...value.examPackages];
   }, []);
   if (data.denied) {
-    return (
-      <p role="alert" data-testid="plans-denied">
-        {t('admin.denied')}
-      </p>
-    );
+    return <AccessDenied reason={t('admin.denied')} testId="plans-denied" />;
   }
   async function after(result: Outcome): Promise<SaveOutcome> {
     await router.invalidate();

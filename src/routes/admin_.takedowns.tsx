@@ -1,4 +1,5 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router';
+import { AccessDenied } from '#src/features/app-shell/ui/ErrorScreen.tsx';
 import {
   decideTakedownNotice,
   getTakedownTargets,
@@ -29,12 +30,7 @@ function TakedownsPage() {
   const { t } = useI18n();
   const data = Route.useLoaderData();
   const router = useRouter();
-  if (data.denied)
-    return (
-      <p role="alert" className="p-6">
-        {t('errors.takedown.forbidden')}
-      </p>
-    );
+  if (data.denied) return <AccessDenied reason={t('errors.takedown.forbidden')} />;
   const refresh = async (r: Outcome) => {
     if (r.ok) await router.invalidate();
     return r;

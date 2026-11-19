@@ -1,4 +1,5 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router';
+import { AccessDenied } from '#src/features/app-shell/ui/ErrorScreen.tsx';
 import {
   getAttributionCourse,
   listAttributionCases,
@@ -35,12 +36,7 @@ function AttributionPage() {
   const { t } = useI18n();
   const data = Route.useLoaderData();
   const router = useRouter();
-  if (data.denied)
-    return (
-      <p role="alert" className="p-6">
-        {t('errors.attribution.forbidden')}
-      </p>
-    );
+  if (data.denied) return <AccessDenied reason={t('errors.attribution.forbidden')} />;
   const refresh = async (r: Outcome) => {
     if (r.ok) await router.invalidate();
     return r;

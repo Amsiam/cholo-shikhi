@@ -1,0 +1,10 @@
+{
+  "file": "golden-cases.json",
+  "sha256": "18865b19ef5647d3468b56e2917757e53d2eb049dd508e752d71fe53c67e7cfd",
+  "status": "approved",
+  "draftedBy": "AI-assisted draft, 2026-11-18",
+  "approvedBy": "Aslam Mahmud Siam (owner-operator)",
+  "approvedAt": "2026-11-18",
+  "note": "Expected values are a draft. The human reviews every case and, to approve, sets status to approved with approvedBy and approvedAt. Any change to golden-cases.json needs a new approval.",
+  "approvalNote": "Approved by the owner-operator: all 8 cases exactly as drafted."
+}

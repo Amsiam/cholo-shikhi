@@ -1,0 +1,7 @@
+# Single-package repository: this file only carries pnpm settings (team.md Supply chain).
+# A new package version is adopted only after it has been public for 7 days (10080 minutes).
+minimumReleaseAge: 10080
+
+# Dependency install scripts are blocked unless the package is listed here.
+onlyBuiltDependencies:
+  - esbuild

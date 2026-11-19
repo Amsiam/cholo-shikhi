@@ -1,0 +1,398 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1794575960401,
+      "tag": "0000_u1_foundation",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794575974503,
+      "tag": "0001_platform_custom",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794576853067,
+      "tag": "0002_auth_rate_limit_bigint",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794576854189,
+      "tag": "0003_auth_rate_limit_comment",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794813046890,
+      "tag": "0004_u2_goals",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794815627480,
+      "tag": "0005_u2_catalog_core",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794886386757,
+      "tag": "0006_u2_catalog_products",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794894891704,
+      "tag": "0007_u2_catalog_images",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794899090804,
+      "tag": "0008_u2_ownership_gist",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794899092459,
+      "tag": "0009_u2_catalog_retention_role",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794979379778,
+      "tag": "0010_u4_learning_commerce",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794980095322,
+      "tag": "0011_u4_lesson_youtube_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1794980941669,
+      "tag": "0012_u4_learning_data_classes",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794983568563,
+      "tag": "0013_u4_quiz_questions_per_version",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1794988710921,
+      "tag": "0014_u9_ledger",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1795000646147,
+      "tag": "0015_u5_mistake_vault",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1795001923154,
+      "tag": "0016_u3_course_renewal",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1795002232539,
+      "tag": "0017_u3_free_trial",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1795002823063,
+      "tag": "0018_u1_profile_phone",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1795003371232,
+      "tag": "0019_u4_question_bank",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1795003946249,
+      "tag": "0020_u4_adaptive_difficulty",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1795005230080,
+      "tag": "0021_u4_exams",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1795005264445,
+      "tag": "0022_u4_exam_settle",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1795006157547,
+      "tag": "0023_u4_course_exams",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1795007015634,
+      "tag": "0024_u7_battles",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1795008032101,
+      "tag": "0025_u3_refunds",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1795008354755,
+      "tag": "0026_u3_ledger_refund_balance",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1795009511947,
+      "tag": "0027_u3_product_orders",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1795011164162,
+      "tag": "0028_u8_live_classes",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1795012715369,
+      "tag": "0029_u5_streak_rewards",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1795016618734,
+      "tag": "0030_u5_study_buddies",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1795017340691,
+      "tag": "0031_u7_course_nps",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1795017835357,
+      "tag": "0032_u4_streak_bonus_quiz",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1795018351391,
+      "tag": "0033_u3_viewer_badge_notice",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1795018938890,
+      "tag": "0034_u9_kyc_payout_accounts",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1795020378539,
+      "tag": "0035_u9_payout_cycles",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1795021783255,
+      "tag": "0036_u9_ledger_payouts",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1795021912562,
+      "tag": "0037_u9_payout_statements",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1795022332174,
+      "tag": "0038_u9_earnings_statements",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1795023090636,
+      "tag": "0039_u11_takedown_notices",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1795023417009,
+      "tag": "0040_u2_trial_lesson_cap",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1795023703105,
+      "tag": "0041_u4_past_paper_import",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1795024305321,
+      "tag": "0042_u2_course_switch",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1795024797456,
+      "tag": "0043_u3_marketing",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1795025534345,
+      "tag": "0044_u11_payment_disputes",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1795025910735,
+      "tag": "0045_u9_attribution_cases",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1795026249700,
+      "tag": "0046_u11_fraud_review",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1795026536286,
+      "tag": "0047_u9_hr_records",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1795027291469,
+      "tag": "0048_u11_account_suspension",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1795027798457,
+      "tag": "0049_u3_bundle_orders",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1795028394247,
+      "tag": "0050_u3_referrals",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1795028825609,
+      "tag": "0051_u3_referral_ledger_balance",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1795028951197,
+      "tag": "0052_u3_referral_withdrawals",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1795030196297,
+      "tag": "0053_u9_attribution_money",
+      "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1795030885634,
+      "tag": "0054_u9_payroll_salary_lines",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1795031358923,
+      "tag": "0055_u9_hybrid_policy_adjustment",
+      "breakpoints": true
+    }
+  ]
+}

@@ -1,0 +1,182 @@
+[
+  {
+    "file": "jpeg-small.jpg",
+    "expect": "stored",
+    "note": "64x48 baseline JPEG"
+  },
+  {
+    "file": "jpeg-large.jpg",
+    "expect": "stored",
+    "note": "2000x1500, all three variants"
+  },
+  {
+    "file": "jpeg-exif-gps-orient6.jpg",
+    "expect": "stored",
+    "note": "EXIF with GPS and orientation 6: rotated, metadata dropped"
+  },
+  {
+    "file": "jpeg-cmyk.jpg",
+    "expect": "stored",
+    "note": "CMYK JPEG converted to sRGB"
+  },
+  {
+    "file": "jpeg-gray.jpg",
+    "expect": "stored",
+    "note": "greyscale JPEG"
+  },
+  {
+    "file": "jpeg-progressive.jpg",
+    "expect": "stored",
+    "note": "progressive JPEG"
+  },
+  {
+    "file": "jpeg-icc-p3.jpg",
+    "expect": "stored",
+    "note": "Display P3 ICC profile, converted and dropped"
+  },
+  {
+    "file": "jpeg-xmp.jpg",
+    "expect": "stored",
+    "note": "XMP packet dropped"
+  },
+  {
+    "file": "png-rgb.png",
+    "expect": "stored",
+    "note": "RGB PNG"
+  },
+  {
+    "file": "png-rgba.png",
+    "expect": "stored",
+    "note": "PNG with alpha"
+  },
+  {
+    "file": "png-16bit.png",
+    "expect": "stored",
+    "note": "16-bit PNG"
+  },
+  {
+    "file": "png-gray.png",
+    "expect": "stored",
+    "note": "greyscale PNG"
+  },
+  {
+    "file": "png-palette.png",
+    "expect": "stored",
+    "note": "palette PNG"
+  },
+  {
+    "file": "png-interlaced.png",
+    "expect": "stored",
+    "note": "Adam7 interlaced PNG"
+  },
+  {
+    "file": "png-1x1.png",
+    "expect": "stored",
+    "note": "one pixel"
+  },
+  {
+    "file": "png-wide.png",
+    "expect": "stored",
+    "note": "3000x10 strip"
+  },
+  {
+    "file": "webp-lossy.webp",
+    "expect": "stored",
+    "note": "lossy WebP"
+  },
+  {
+    "file": "webp-lossless.webp",
+    "expect": "stored",
+    "note": "lossless WebP"
+  },
+  {
+    "file": "webp-alpha.webp",
+    "expect": "stored",
+    "note": "WebP with alpha"
+  },
+  {
+    "file": "webp-exif-xmp.webp",
+    "expect": "stored",
+    "note": "WebP with EXIF (GPS) and XMP chunks, dropped"
+  },
+  {
+    "file": "selftest.jpg",
+    "expect": "stored",
+    "note": "INF-203 check 8: about 1 KB, three variants"
+  },
+  {
+    "file": "gif.gif",
+    "expect": "imageType",
+    "note": "GIF"
+  },
+  {
+    "file": "svg-script.bin",
+    "expect": "imageType",
+    "note": "SVG with script"
+  },
+  {
+    "file": "tiff.tif",
+    "expect": "imageType",
+    "note": "TIFF"
+  },
+  {
+    "file": "bmp.bmp",
+    "expect": "imageType",
+    "note": "BMP header"
+  },
+  {
+    "file": "heic-header.heic",
+    "expect": "imageType",
+    "note": "HEIC ftyp box"
+  },
+  {
+    "file": "pdf.pdf",
+    "expect": "imageType",
+    "note": "PDF"
+  },
+  {
+    "file": "empty.bin",
+    "expect": "imageType",
+    "note": "zero bytes"
+  },
+  {
+    "file": "html-script.bin",
+    "expect": "imageType",
+    "note": "HTML"
+  },
+  {
+    "file": "random.bin",
+    "expect": "imageType",
+    "note": "fixed pseudo-random bytes"
+  },
+  {
+    "file": "webp-animated.webp",
+    "expect": "imageType",
+    "note": "animated WebP (2 pages): exactly one page is accepted"
+  },
+  {
+    "file": "jpeg-truncated.jpg",
+    "expect": "imageUnreadable",
+    "note": "JPEG cut off"
+  },
+  {
+    "file": "png-truncated.png",
+    "expect": "imageUnreadable",
+    "note": "PNG cut off"
+  },
+  {
+    "file": "png-bomb.png",
+    "expect": "imageUnreadable",
+    "note": "51.8 Mpx, over limitInputPixels (memory-spike case, CI-204)"
+  },
+  {
+    "file": "png-polyglot.png",
+    "expect": "imageUnreadable",
+    "note": "PNG signature followed by HTML"
+  },
+  {
+    "file": "jpeg-header-only.jpg",
+    "expect": "imageUnreadable",
+    "note": "JPEG signature only"
+  }
+]

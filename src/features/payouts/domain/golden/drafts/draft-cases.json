@@ -1,0 +1,740 @@
+{
+  "scope": "DRAFT, not approved. New payout rules behind the payouts.payrollAndAttribution flag: attribution money (US7.13); payroll salary lines (US7.16, AC7.10.3): floor(salary x days employed / days in the month). Each sale's unassigned pool is given as an input: it is the instructor pool of a sale with no section owner, floor(amount x 7000 / 10000), from the already-approved split rule; hybrid lines (US7.27): salary + floor(attributed x shareBps / 10000), replacing the ledger's default 70% credit for those sales (a salary policy's share is 0).",
+  "units": "poisha",
+  "cases": [
+    {
+      "id": "D-A01-dispute-resolved",
+      "kind": "attribution",
+      "explanation": "A 4-section course had no owners. Sale P1 (BDT 1,200) left 84000 unassigned, sale P2 (BDT 999.99) left 69999. Tasnim is confirmed owner of section s1, so she gets one quarter of each sale's pool, rounded down: 84000/4 = 21000 and 69999/4 = 17499.75 -> 17499. Moved 38499. With 10000 earned elsewhere, her next cycle pays 10000 + 38499 = 48499. The pool keeps 153999 - 38499 = 115500.",
+      "input": {
+        "month": "2027-02",
+        "sectionId": "s1",
+        "ownerId": "tasnim",
+        "sales": [
+          {
+            "paymentId": "P1",
+            "unassigned": 84000,
+            "sectionIds": ["s1", "s2", "s3", "s4"]
+          },
+          {
+            "paymentId": "P2",
+            "unassigned": 69999,
+            "sectionIds": ["s1", "s2", "s3", "s4"]
+          }
+        ],
+        "alreadyMoved": {},
+        "instructors": [
+          {
+            "instructorId": "tasnim",
+            "earned": 10000,
+            "carryIn": 0,
+            "isVerified": true
+          }
+        ]
+      },
+      "expected": {
+        "moved": 38499,
+        "poolLeft": 115500,
+        "lines": {
+          "tasnim": {
+            "payout": 48499,
+            "carryOut": 0,
+            "state": "pending"
+          }
+        }
+      }
+    },
+    {
+      "id": "D-A02-second-case-moves-only-new-sales",
+      "kind": "attribution",
+      "explanation": "After D-A01 (21000 from P1 and 17499 from P2 already moved), a new sale P3 (BDT 500) left 35000 unassigned and a second case confirms Tasnim for s1 again. Only P3's share moves: 35000/4 = 8750. Nothing is moved twice. Her next cycle pays 8750. The pool keeps 188999 - 38499 - 8750 = 141750.",
+      "input": {
+        "month": "2027-03",
+        "sectionId": "s1",
+        "ownerId": "tasnim",
+        "sales": [
+          {
+            "paymentId": "P1",
+            "unassigned": 84000,
+            "sectionIds": ["s1", "s2", "s3", "s4"]
+          },
+          {
+            "paymentId": "P2",
+            "unassigned": 69999,
+            "sectionIds": ["s1", "s2", "s3", "s4"]
+          },
+          {
+            "paymentId": "P3",
+            "unassigned": 35000,
+            "sectionIds": ["s1", "s2", "s3", "s4"]
+          }
+        ],
+        "alreadyMoved": {
+          "P1": 21000,
+          "P2": 17499
+        },
+        "instructors": [
+          {
+            "instructorId": "tasnim",
+            "earned": 0,
+            "carryIn": 0,
+            "isVerified": true
+          }
+        ]
+      },
+      "expected": {
+        "moved": 8750,
+        "poolLeft": 141750,
+        "lines": {
+          "tasnim": {
+            "payout": 8750,
+            "carryOut": 0,
+            "state": "pending"
+          }
+        }
+      }
+    },
+    {
+      "id": "D-A03-section-added-after-a-sale",
+      "kind": "attribution",
+      "explanation": "Section s4 was added after sale P1 (BDT 300, 21000 unassigned, 3 sections then), so P1 gives it nothing. Sale P2 (BDT 100, 7000 unassigned) came after, with 4 sections: 7000/4 = 1750. Farhana, confirmed for s4, is not verified, so her 1750 line is held. The pool keeps 28000 - 1750 = 26250.",
+      "input": {
+        "month": "2027-02",
+        "sectionId": "s4",
+        "ownerId": "farhana",
+        "sales": [
+          {
+            "paymentId": "P1",
+            "unassigned": 21000,
+            "sectionIds": ["s1", "s2", "s3"]
+          },
+          {
+            "paymentId": "P2",
+            "unassigned": 7000,
+            "sectionIds": ["s1", "s2", "s3", "s4"]
+          }
+        ],
+        "alreadyMoved": {},
+        "instructors": [
+          {
+            "instructorId": "farhana",
+            "earned": 0,
+            "carryIn": 0,
+            "isVerified": false
+          }
+        ]
+      },
+      "expected": {
+        "moved": 1750,
+        "poolLeft": 26250,
+        "lines": {
+          "farhana": {
+            "payout": 1750,
+            "carryOut": 0,
+            "state": "held"
+          }
+        }
+      }
+    },
+    {
+      "id": "D-A04-moved-money-against-a-carry",
+      "kind": "attribution",
+      "explanation": "As D-A01, Tasnim receives 38499, but she still owes 50000 back from an earlier cycle and earned nothing else. 38499 - 50000 = -11501, so she is paid 0 and owes 11501 into the next cycle.",
+      "input": {
+        "month": "2027-02",
+        "sectionId": "s1",
+        "ownerId": "tasnim",
+        "sales": [
+          {
+            "paymentId": "P1",
+            "unassigned": 84000,
+            "sectionIds": ["s1", "s2", "s3", "s4"]
+          },
+          {
+            "paymentId": "P2",
+            "unassigned": 69999,
+            "sectionIds": ["s1", "s2", "s3", "s4"]
+          }
+        ],
+        "alreadyMoved": {},
+        "instructors": [
+          {
+            "instructorId": "tasnim",
+            "earned": 0,
+            "carryIn": 50000,
+            "isVerified": true
+          }
+        ]
+      },
+      "expected": {
+        "moved": 38499,
+        "poolLeft": 115500,
+        "lines": {
+          "tasnim": {
+            "payout": 0,
+            "carryOut": 11501,
+            "state": "pending"
+          }
+        }
+      }
+    },
+    {
+      "id": "D-P01-full-month",
+      "kind": "payroll",
+      "explanation": "Shirin, an Employee on a BDT 30,000 (3000000 poisha) monthly salary, works all of April 2027 (30 days). Her salary line is the whole salary: 3000000. Nothing else earned, so she is paid 3000000.",
+      "input": {
+        "month": "2027-04",
+        "employees": [
+          {
+            "instructorId": "shirin",
+            "salaryPoisha": 3000000,
+            "joinedOn": null,
+            "exitOn": null,
+            "absences": []
+          }
+        ],
+        "instructors": [
+          {
+            "instructorId": "shirin",
+            "earned": 0,
+            "carryIn": 0,
+            "isVerified": true
+          }
+        ]
+      },
+      "expected": {
+        "salaries": {
+          "shirin": {
+            "salary": 3000000,
+            "daysPaid": 30,
+            "daysInMonth": 30,
+            "absenceWithoutLeaveDays": 0
+          }
+        },
+        "missingSalary": [],
+        "lines": {
+          "shirin": {
+            "payout": 3000000,
+            "carryOut": 0,
+            "state": "pending"
+          }
+        }
+      }
+    },
+    {
+      "id": "D-P02-exit-15-april",
+      "kind": "payroll",
+      "explanation": "Shirin leaves on 15 April 2027 (a 30-day month): she worked 15 days, so 3000000 x 15 / 30 = 1500000 exactly.",
+      "input": {
+        "month": "2027-04",
+        "employees": [
+          {
+            "instructorId": "shirin",
+            "salaryPoisha": 3000000,
+            "joinedOn": null,
+            "exitOn": "2027-04-15",
+            "absences": []
+          }
+        ],
+        "instructors": [
+          {
+            "instructorId": "shirin",
+            "earned": 0,
+            "carryIn": 0,
+            "isVerified": true
+          }
+        ]
+      },
+      "expected": {
+        "salaries": {
+          "shirin": {
+            "salary": 1500000,
+            "daysPaid": 15,
+            "daysInMonth": 30,
+            "absenceWithoutLeaveDays": 0
+          }
+        },
+        "missingSalary": [],
+        "lines": {
+          "shirin": {
+            "payout": 1500000,
+            "carryOut": 0,
+            "state": "pending"
+          }
+        }
+      }
+    },
+    {
+      "id": "D-P03-exit-10-january",
+      "kind": "payroll",
+      "explanation": "Shirin leaves on 10 January 2027 (31 days): 3000000 x 10 / 31 = 967741.93..., rounded down to 967741. The 0.93 poisha is not paid.",
+      "input": {
+        "month": "2027-01",
+        "employees": [
+          {
+            "instructorId": "shirin",
+            "salaryPoisha": 3000000,
+            "joinedOn": null,
+            "exitOn": "2027-01-10",
+            "absences": []
+          }
+        ],
+        "instructors": [
+          {
+            "instructorId": "shirin",
+            "earned": 0,
+            "carryIn": 0,
+            "isVerified": true
+          }
+        ]
+      },
+      "expected": {
+        "salaries": {
+          "shirin": {
+            "salary": 967741,
+            "daysPaid": 10,
+            "daysInMonth": 31,
+            "absenceWithoutLeaveDays": 0
+          }
+        },
+        "missingSalary": [],
+        "lines": {
+          "shirin": {
+            "payout": 967741,
+            "carryOut": 0,
+            "state": "pending"
+          }
+        }
+      }
+    },
+    {
+      "id": "D-P04-no-line-after-exit",
+      "kind": "payroll",
+      "explanation": "Shirin left on 15 April 2027, so the May 2027 cycle has no salary line for her at all (AC7.10.3), and no payout.",
+      "input": {
+        "month": "2027-05",
+        "employees": [
+          {
+            "instructorId": "shirin",
+            "salaryPoisha": 3000000,
+            "joinedOn": null,
+            "exitOn": "2027-04-15",
+            "absences": []
+          }
+        ],
+        "instructors": [
+          {
+            "instructorId": "shirin",
+            "earned": 0,
+            "carryIn": 0,
+            "isVerified": true
+          }
+        ]
+      },
+      "expected": {
+        "salaries": {},
+        "missingSalary": [],
+        "lines": {}
+      }
+    },
+    {
+      "id": "D-P05-joiner-with-revenue-share",
+      "kind": "payroll",
+      "explanation": "Rafiq joins on 20 April 2027 and works 11 of 30 days: 3000000 x 11 / 30 = 1100000. He also earned 26250 of revenue share, so he is paid 1100000 + 26250 = 1126250.",
+      "input": {
+        "month": "2027-04",
+        "employees": [
+          {
+            "instructorId": "rafiq",
+            "salaryPoisha": 3000000,
+            "joinedOn": "2027-04-20",
+            "exitOn": null,
+            "absences": []
+          }
+        ],
+        "instructors": [
+          {
+            "instructorId": "rafiq",
+            "earned": 26250,
+            "carryIn": 0,
+            "isVerified": true
+          }
+        ]
+      },
+      "expected": {
+        "salaries": {
+          "rafiq": {
+            "salary": 1100000,
+            "daysPaid": 11,
+            "daysInMonth": 30,
+            "absenceWithoutLeaveDays": 0
+          }
+        },
+        "missingSalary": [],
+        "lines": {
+          "rafiq": {
+            "payout": 1126250,
+            "carryOut": 0,
+            "state": "pending"
+          }
+        }
+      }
+    },
+    {
+      "id": "D-P06-absence-flagged-not-deducted",
+      "kind": "payroll",
+      "explanation": "Shirin is absent without leave on 6 and 7 April 2027. The 2 days are flagged for review, but nothing is deducted (AC7.16.3): her line stays 3000000.",
+      "input": {
+        "month": "2027-04",
+        "employees": [
+          {
+            "instructorId": "shirin",
+            "salaryPoisha": 3000000,
+            "joinedOn": null,
+            "exitOn": null,
+            "absences": [
+              {
+                "startsOn": "2027-04-06",
+                "endsOn": "2027-04-07",
+                "isWithoutLeave": true
+              }
+            ]
+          }
+        ],
+        "instructors": [
+          {
+            "instructorId": "shirin",
+            "earned": 0,
+            "carryIn": 0,
+            "isVerified": true
+          }
+        ]
+      },
+      "expected": {
+        "salaries": {
+          "shirin": {
+            "salary": 3000000,
+            "daysPaid": 30,
+            "daysInMonth": 30,
+            "absenceWithoutLeaveDays": 2
+          }
+        },
+        "missingSalary": [],
+        "lines": {
+          "shirin": {
+            "payout": 3000000,
+            "carryOut": 0,
+            "state": "pending"
+          }
+        }
+      }
+    },
+    {
+      "id": "D-P07-salary-against-money-owed-back",
+      "kind": "payroll",
+      "explanation": "Shirin leaves on 15 April 2027 (salary 1500000) and still owes 20000 back from a refund in an earlier cycle. 1500000 - 20000 = 1480000 is paid, and nothing is carried forward.",
+      "input": {
+        "month": "2027-04",
+        "employees": [
+          {
+            "instructorId": "shirin",
+            "salaryPoisha": 3000000,
+            "joinedOn": null,
+            "exitOn": "2027-04-15",
+            "absences": []
+          }
+        ],
+        "instructors": [
+          {
+            "instructorId": "shirin",
+            "earned": 0,
+            "carryIn": 20000,
+            "isVerified": true
+          }
+        ]
+      },
+      "expected": {
+        "salaries": {
+          "shirin": {
+            "salary": 1500000,
+            "daysPaid": 15,
+            "daysInMonth": 30,
+            "absenceWithoutLeaveDays": 0
+          }
+        },
+        "missingSalary": [],
+        "lines": {
+          "shirin": {
+            "payout": 1480000,
+            "carryOut": 0,
+            "state": "pending"
+          }
+        }
+      }
+    },
+    {
+      "id": "D-P08-missing-salary-refused",
+      "kind": "payroll",
+      "explanation": "Nasrin is an Employee who worked in April 2027 but has no salary set. Payroll names her and the cycle cannot be committed (AC7.16.4); no salary line is made for her.",
+      "input": {
+        "month": "2027-04",
+        "employees": [
+          {
+            "instructorId": "nasrin",
+            "salaryPoisha": null,
+            "joinedOn": null,
+            "exitOn": null,
+            "absences": []
+          }
+        ],
+        "instructors": [
+          {
+            "instructorId": "nasrin",
+            "earned": 0,
+            "carryIn": 0,
+            "isVerified": true
+          }
+        ]
+      },
+      "expected": {
+        "salaries": {},
+        "missingSalary": ["nasrin"],
+        "lines": {}
+      }
+    },
+    {
+      "id": "D-H01-hybrid-salary-plus-share",
+      "kind": "hybrid",
+      "explanation": "Tasnim is hybrid: salary BDT 20,000 (2000000) plus 1500 bp. In April 2027 she works the full month and sales of her sections total 1000000. Line = 2000000 + floor(1000000 x 1500 / 10000) = 2000000 + 150000 = 2150000 (AC7.27.1). The ledger had credited her the default 70% (700000), so the cycle adjusts by 150000 - 700000 = -550000 back to platform revenue.",
+      "input": {
+        "month": "2027-04",
+        "employee": {
+          "instructorId": "tasnim",
+          "salaryPoisha": 2000000,
+          "joinedOn": null,
+          "exitOn": null,
+          "absences": []
+        },
+        "policy": {
+          "kind": "hybrid",
+          "shareBps": 1500
+        },
+        "transactions": [
+          {
+            "amount": 1000000,
+            "kind": "course_sale",
+            "sections": 1,
+            "totalSections": 1,
+            "credited": 700000
+          }
+        ],
+        "carryIn": 0,
+        "isVerified": true
+      },
+      "expected": {
+        "salary": 2000000,
+        "attributed": 1000000,
+        "share": 150000,
+        "credited": 700000,
+        "adjustment": -550000,
+        "lines": {
+          "tasnim": {
+            "payout": 2150000,
+            "carryOut": 0,
+            "state": "pending"
+          }
+        }
+      }
+    },
+    {
+      "id": "D-H02-hybrid-leaver",
+      "kind": "hybrid",
+      "explanation": "Tasnim (hybrid, 2000000 + 1500 bp) leaves on 15 April 2027: salary part 2000000 x 15 / 30 = 1000000 (AC7.27.2). Only April's sales count: sale 1 BDT 1,200 where she owns 2 of 4 sections -> floor(120000 x 2 / 4) = 60000 attributed; sale 2 BDT 999.99 with 1 of 3 -> floor(99999 / 3) = 33333. Share = floor(93333 x 1500 / 10000) = floor(13999.95) = 13999. Line = 1000000 + 13999 = 1013999. The ledger had credited 42000 + 23333 = 65333, so the adjustment is 13999 - 65333 = -51334.",
+      "input": {
+        "month": "2027-04",
+        "employee": {
+          "instructorId": "tasnim",
+          "salaryPoisha": 2000000,
+          "joinedOn": null,
+          "exitOn": "2027-04-15",
+          "absences": []
+        },
+        "policy": {
+          "kind": "hybrid",
+          "shareBps": 1500
+        },
+        "transactions": [
+          {
+            "amount": 120000,
+            "kind": "course_sale",
+            "sections": 2,
+            "totalSections": 4,
+            "credited": 42000
+          },
+          {
+            "amount": 99999,
+            "kind": "course_sale",
+            "sections": 1,
+            "totalSections": 3,
+            "credited": 23333
+          }
+        ],
+        "carryIn": 0,
+        "isVerified": true
+      },
+      "expected": {
+        "salary": 1000000,
+        "attributed": 93333,
+        "share": 13999,
+        "credited": 65333,
+        "adjustment": -51334,
+        "lines": {
+          "tasnim": {
+            "payout": 1013999,
+            "carryOut": 0,
+            "state": "pending"
+          }
+        }
+      }
+    },
+    {
+      "id": "D-H03-hybrid-with-refund",
+      "kind": "hybrid",
+      "explanation": "Tasnim (hybrid, 2000000 + 1500 bp), full April 2027. A BDT 10,000 sale (1000000, all sections hers) and a BDT 4,000 refund of it in the same month: attributed 1000000 - 400000 = 600000; share floor(600000 x 1500 / 10000) = 90000. Line = 2000000 + 90000 = 2090000. Ledger credit 700000 - 280000 = 420000; adjustment 90000 - 420000 = -330000.",
+      "input": {
+        "month": "2027-04",
+        "employee": {
+          "instructorId": "tasnim",
+          "salaryPoisha": 2000000,
+          "joinedOn": null,
+          "exitOn": null,
+          "absences": []
+        },
+        "policy": {
+          "kind": "hybrid",
+          "shareBps": 1500
+        },
+        "transactions": [
+          {
+            "amount": 1000000,
+            "kind": "course_sale",
+            "sections": 1,
+            "totalSections": 1,
+            "credited": 700000
+          },
+          {
+            "amount": 400000,
+            "kind": "course_refund",
+            "sections": 1,
+            "totalSections": 1,
+            "credited": -280000
+          }
+        ],
+        "carryIn": 0,
+        "isVerified": true
+      },
+      "expected": {
+        "salary": 2000000,
+        "attributed": 600000,
+        "share": 90000,
+        "credited": 420000,
+        "adjustment": -330000,
+        "lines": {
+          "tasnim": {
+            "payout": 2090000,
+            "carryOut": 0,
+            "state": "pending"
+          }
+        }
+      }
+    },
+    {
+      "id": "D-H04-salary-policy-no-share",
+      "kind": "hybrid",
+      "explanation": "Rafiq's policy is salary only (3000000), full April 2027. A BDT 1,000 sale of his section was credited 70000 by the ledger, but a salary policy has no revenue share: adjustment -70000. Line = 3000000.",
+      "input": {
+        "month": "2027-04",
+        "employee": {
+          "instructorId": "rafiq",
+          "salaryPoisha": 3000000,
+          "joinedOn": null,
+          "exitOn": null,
+          "absences": []
+        },
+        "policy": {
+          "kind": "salary",
+          "shareBps": null
+        },
+        "transactions": [
+          {
+            "amount": 100000,
+            "kind": "course_sale",
+            "sections": 1,
+            "totalSections": 1,
+            "credited": 70000
+          }
+        ],
+        "carryIn": 0,
+        "isVerified": true
+      },
+      "expected": {
+        "salary": 3000000,
+        "attributed": 100000,
+        "share": 0,
+        "credited": 70000,
+        "adjustment": -70000,
+        "lines": {
+          "rafiq": {
+            "payout": 3000000,
+            "carryOut": 0,
+            "state": "pending"
+          }
+        }
+      }
+    },
+    {
+      "id": "D-H05-hybrid-refund-only-rounds-down",
+      "kind": "hybrid",
+      "explanation": "Tasnim (hybrid, 2000000 + 1500 bp), full April 2027, has only a refund of 10001 (an earlier month's sale), which the ledger took back as -7000. Attributed -10001; share floor(-10001 x 1500 / 10000) = floor(-1500.15) = -1501 (rounded toward minus infinity, so the fraction stays with the platform). Line = 2000000 - 1501 = 1998499. Adjustment -1501 - (-7000) = 5499.",
+      "input": {
+        "month": "2027-04",
+        "employee": {
+          "instructorId": "tasnim",
+          "salaryPoisha": 2000000,
+          "joinedOn": null,
+          "exitOn": null,
+          "absences": []
+        },
+        "policy": {
+          "kind": "hybrid",
+          "shareBps": 1500
+        },
+        "transactions": [
+          {
+            "amount": 10001,
+            "kind": "course_refund",
+            "sections": 1,
+            "totalSections": 1,
+            "credited": -7000
+          }
+        ],
+        "carryIn": 0,
+        "isVerified": true
+      },
+      "expected": {
+        "salary": 2000000,
+        "attributed": -10001,
+        "share": -1501,
+        "credited": -7000,
+        "adjustment": 5499,
+        "lines": {
+          "tasnim": {
+            "payout": 1998499,
+            "carryOut": 0,
+            "state": "pending"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,198 @@
+@import "tailwindcss";
+
+/* shadcn/ui neutral theme tokens (theming only). Bangla-capable system fonts; no remote font loading. */
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  /* Primary: teal. L 0.5 keeps white text above 4.5:1. */
+  --primary: oklch(0.5 0.09 192);
+  --primary-foreground: oklch(0.99 0.005 192);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  /* Secondary text: the solid ballpoint-navy muted step (5.1:1 on paper), not a grey. */
+  --muted-foreground: oklch(0.52 0.045 265);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.62 0.09 192);
+  /* Landing page: an exam OMR sheet. Cool answer-sheet paper, the sheet's red-pink print,
+     ballpoint blue-black for filled bubbles, a green for a correct mark. */
+  --paper: oklch(0.975 0.004 250);
+  --paper-line: oklch(0.9 0.03 12);
+  /* L 0.52 keeps red text above 4.5:1 on its own soft tint (5.0:1) and on white (6.1:1). */
+  --omr: oklch(0.52 0.19 12);
+  --omr-soft: oklch(0.94 0.035 12);
+  --ink: oklch(0.25 0.06 265);
+  --ink-foreground: oklch(0.98 0.005 250);
+  /* Solid secondary navy for hints, captions and labels; never navy at reduced opacity. */
+  --ink-muted: oklch(0.52 0.045 265);
+  --pass: oklch(0.5 0.12 155);
+}
+
+@theme inline {
+  --font-sans: "Noto Sans Bengali", "Hind Siliguri", system-ui, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-paper: var(--paper);
+  --color-paper-line: var(--paper-line);
+  --color-omr: var(--omr);
+  --color-omr-soft: var(--omr-soft);
+  --color-ink: var(--ink);
+  --color-ink-foreground: var(--ink-foreground);
+  --color-ink-muted: var(--ink-muted);
+  --color-pass: var(--pass);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    /* Native controls, the caret and scrollbars take the palette instead of browser defaults. */
+    accent-color: var(--primary);
+    caret-color: var(--primary);
+    scrollbar-color: color-mix(in oklab, var(--ink) 30%, transparent) transparent;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--primary) 22%, transparent);
+    color: var(--ink);
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    /* Long Bangla words wrap instead of clipping on a 360 px screen (BR6.6). */
+    overflow-wrap: anywhere;
+  }
+}
+
+/* A stand-alone text link (not inside running text) gets a 44 px tap height without looking taller. */
+@utility tap-target {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+}
+
+/* Pages that render inside the shared page frame (staff, settings, goal and notification screens)
+   get the same heading scale as the redesigned pages. Unlayered on purpose: it must win over the
+   older per-page text-2xl utilities those headings still carry. */
+.page-frame h1 {
+  font-size: var(--text-3xl);
+  line-height: var(--text-3xl--line-height);
+  font-weight: 800;
+  letter-spacing: var(--tracking-tight);
+  text-wrap: balance;
+}
+@media (width >= 40rem) {
+  .page-frame h1 {
+    font-size: var(--text-4xl);
+    line-height: var(--text-4xl--line-height);
+  }
+}
+.page-frame h2 {
+  font-weight: 700;
+}
+/* Grid items default to min-width: auto, so one wide child (a table that scrolls in its own box)
+   would push every ancestor track past the screen at 360 px. Let them shrink instead. */
+.page-frame :where(.grid) > * {
+  min-width: 0;
+}
+
+/* Rendered lesson text (the lesson renderer emits bare h2–h4, p, ul, ol, li, blockquote, a). One
+   style for the student's reading view and the instructor's preview, so the preview shows exactly
+   what students will see. Unlayered so it wins over Tailwind's preflight reset. */
+.lesson-prose {
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+.lesson-prose > * + * {
+  margin-top: 0.85em;
+}
+.lesson-prose h2 {
+  margin-top: 1.4em;
+  font-size: var(--text-xl);
+  line-height: 1.4;
+  font-weight: 700;
+  color: var(--ink);
+}
+.lesson-prose h3 {
+  margin-top: 1.2em;
+  font-size: var(--text-lg);
+  line-height: 1.4;
+  font-weight: 700;
+  color: var(--ink);
+}
+.lesson-prose h4 {
+  margin-top: 1em;
+  font-weight: 700;
+}
+.lesson-prose > :first-child {
+  margin-top: 0;
+}
+.lesson-prose ul,
+.lesson-prose ol {
+  padding-left: 1.5em;
+}
+.lesson-prose ul {
+  list-style: disc;
+}
+.lesson-prose ol {
+  list-style: decimal;
+}
+.lesson-prose li + li {
+  margin-top: 0.35em;
+}
+.lesson-prose li::marker {
+  color: var(--primary);
+}
+.lesson-prose strong {
+  font-weight: 700;
+}
+.lesson-prose a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.lesson-prose blockquote {
+  border: 1px solid color-mix(in oklab, var(--primary) 25%, transparent);
+  background: color-mix(in oklab, var(--primary) 5%, transparent);
+  padding: 0.75em 1em;
+}
+.lesson-prose img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Printing (receipts): white paper, no app chrome tints. */
+@media print {
+  body,
+  .bg-paper {
+    background: #fff;
+  }
+  [data-testid="student-shell"] {
+    background-image: none;
+  }
+}

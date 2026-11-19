@@ -1,0 +1,10 @@
+{
+  "file": "draft-cases.json",
+  "sha256": "ed84ccac36ab1bdbbe6ba74d48ad3110260b9eecc159203016c326a3bd7ac23a",
+  "status": "approved",
+  "draftedBy": "AI-assisted draft, 2026-11-19",
+  "approvedBy": "Aslam Mahmud Siam (owner-operator)",
+  "approvedAt": "2026-11-19",
+  "note": "DRAFT. These cases cover the rules behind the payouts.payrollAndAttribution flag (attribution money, payroll, hybrid). A payout cycle refuses to commit with that flag on until this set is approved. The human reviews every case and, to approve, sets status to approved with approvedBy and approvedAt (as for golden-manifest.json). Any change to draft-cases.json needs a new approval. An AI agent never approves.",
+  "approvalNote": "Approved by the owner-operator: all 17 draft cases exactly as drafted (D-A01–D-A04, D-P01–D-P08, D-H01–D-H05)."
+}

@@ -1,0 +1,1 @@
+ALTER TABLE "auth_rate_limit" ALTER COLUMN "last_request_epoch_s" SET DATA TYPE bigint;

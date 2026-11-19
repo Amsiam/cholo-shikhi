@@ -1,0 +1,237 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.6.5/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": true,
+    "includes": [
+      "**",
+      "!**/routeTree.gen.ts",
+      "!drizzle",
+      "!**/*.md",
+      "!coverage",
+      "!.output",
+      "!dist",
+      "!test-results",
+      "!playwright-report"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "a11y": "error",
+      "security": {
+        "noGlobalEval": "error",
+        "noDangerouslySetInnerHtml": "error",
+        "noDangerouslySetInnerHtmlWithChildren": "error"
+      },
+      "suspicious": {
+        "noEmptyBlockStatements": "error",
+        "noExplicitAny": "error",
+        "noConsole": { "level": "error", "options": { "allow": ["error", "warn"] } }
+      },
+      "style": {
+        "noDefaultExport": "error",
+        "useImportType": "error",
+        "useExportType": "error"
+      },
+      "complexity": {
+        "noUselessCatch": "error"
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "semicolons": "always"
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["src/features/*/domain/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@tanstack/*",
+                      "react",
+                      "react-dom",
+                      "better-auth",
+                      "better-auth/*",
+                      "pg",
+                      "drizzle-orm",
+                      "drizzle-orm/*",
+                      "**/data/**",
+                      "#src/server/*"
+                    ],
+                    "message": "Domain code imports no framework, auth library, DB client or data layer (team.md layer boundaries)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/*/ui/**", "src/routes/**", "src/components/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["**/data/**", "#src/server/db*"],
+                    "message": "UI may call server functions but never imports the data layer (team.md layer boundaries)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/goals/domain/**", "src/features/catalog/domain/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@tanstack/*",
+                      "react",
+                      "react-dom",
+                      "better-auth",
+                      "better-auth/*",
+                      "pg",
+                      "drizzle-orm",
+                      "drizzle-orm/*",
+                      "**/data/**",
+                      "#src/server/**",
+                      "**/*.server",
+                      "**/*.server.ts",
+                      "#src/lib/env*",
+                      "#src/features/*/server/**",
+                      "#src/features/*/data/**"
+                    ],
+                    "message": "U2 domain code imports no framework, auth library, DB client, env, data layer or server module (team.md layer boundaries; catalog plan Step 51b)."
+                  },
+                  {
+                    "group": [
+                      "#src/features/**",
+                      "!#src/features/platform/**",
+                      "!#src/features/identity-access/**",
+                      "!#src/features/notifications/**",
+                      "!#src/features/app-shell/**",
+                      "!#src/features/realtime/**",
+                      "!#src/features/goals/**",
+                      "!#src/features/catalog/**"
+                    ],
+                    "message": "U2 depends on U1 only: no import of a later unit's feature (ADR-020; catalog plan Step 51b)."
+                  }
+                ]
+              }
+            },
+            "noRestrictedGlobals": {
+              "level": "error",
+              "options": {
+                "deniedGlobals": {
+                  "process": "U2 domain code never reads process or process.env (team.md layer boundaries; catalog plan Step 51b)."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/goals/ui/**", "src/features/catalog/ui/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "**/data/**",
+                      "#src/server/**",
+                      "**/*.server",
+                      "**/*.server.ts",
+                      "#src/lib/env*"
+                    ],
+                    "message": "U2 UI calls server functions but never imports the data layer, a server-only module or env (team.md layer boundaries; catalog plan Step 51b)."
+                  },
+                  {
+                    "group": [
+                      "#src/features/**",
+                      "!#src/features/platform/**",
+                      "!#src/features/identity-access/**",
+                      "!#src/features/notifications/**",
+                      "!#src/features/app-shell/**",
+                      "!#src/features/realtime/**",
+                      "!#src/features/goals/**",
+                      "!#src/features/catalog/**"
+                    ],
+                    "message": "U2 depends on U1 only: no import of a later unit's feature (ADR-020; catalog plan Step 51b)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "src/routes/**",
+        "vite.config.ts",
+        "vitest.config.ts",
+        "drizzle.config.ts",
+        "playwright.config.ts",
+        "src/router.tsx",
+        "src/start.ts"
+      ],
+      "linter": { "rules": { "style": { "noDefaultExport": "off" } } }
+    },
+    {
+      "includes": ["scripts/**", "src/worker/**"],
+      "linter": { "rules": { "suspicious": { "noConsole": "off" } } }
+    }
+  ]
+}

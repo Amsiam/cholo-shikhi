@@ -1,0 +1,125 @@
+{
+  "scope": "Revenue share only (payout cycles over the ledger's instructor_payable). Salary, per-piece, hybrid, per-course split override, policy-version change and promo clawback cases are not in this scope yet.",
+  "units": "poisha",
+  "cases": [
+    {
+      "id": "G01-single-sale",
+      "description": "One BDT 1,500 sale, instructor share 70% = 105000 poisha, verified instructor.",
+      "cycles": [
+        {
+          "month": "2027-01",
+          "instructors": [{ "instructorId": "tasnim", "earned": 105000, "isVerified": true }],
+          "expected": { "tasnim": { "payout": 105000, "carryOut": 0, "state": "pending" } }
+        }
+      ]
+    },
+    {
+      "id": "G02-zero-revenue-cycle",
+      "description": "Nothing earned and nothing owed back: no line at all.",
+      "cycles": [
+        {
+          "month": "2027-01",
+          "instructors": [{ "instructorId": "tasnim", "earned": 0, "isVerified": true }],
+          "expected": {}
+        }
+      ]
+    },
+    {
+      "id": "G03-sale-and-refund-same-cycle",
+      "description": "A sale and its full refund in the same month cancel out: no line.",
+      "cycles": [
+        {
+          "month": "2027-01",
+          "instructors": [{ "instructorId": "tasnim", "earned": 0, "isVerified": true }],
+          "expected": {}
+        }
+      ]
+    },
+    {
+      "id": "G04-refund-of-already-paid-sale",
+      "description": "A sale paid in January is refunded in February (instructor owes 105000 back), then 150000 is earned in March.",
+      "cycles": [
+        {
+          "month": "2027-01",
+          "instructors": [{ "instructorId": "tasnim", "earned": 105000, "isVerified": true }],
+          "expected": { "tasnim": { "payout": 105000, "carryOut": 0, "state": "pending" } }
+        },
+        {
+          "month": "2027-02",
+          "instructors": [{ "instructorId": "tasnim", "earned": -105000, "isVerified": true }],
+          "expected": { "tasnim": { "payout": 0, "carryOut": 105000, "state": "pending" } }
+        },
+        {
+          "month": "2027-03",
+          "instructors": [{ "instructorId": "tasnim", "earned": 150000, "isVerified": true }],
+          "expected": { "tasnim": { "payout": 45000, "carryOut": 0, "state": "pending" } }
+        }
+      ]
+    },
+    {
+      "id": "G05-carry-forward-cleared-over-two-cycles",
+      "description": "20000 owed back; 5000 earned pays 0 and carries 15000; 30000 earned then pays 15000.",
+      "cycles": [
+        {
+          "month": "2027-01",
+          "instructors": [{ "instructorId": "tasnim", "earned": -20000, "isVerified": true }],
+          "expected": { "tasnim": { "payout": 0, "carryOut": 20000, "state": "pending" } }
+        },
+        {
+          "month": "2027-02",
+          "instructors": [{ "instructorId": "tasnim", "earned": 5000, "isVerified": true }],
+          "expected": { "tasnim": { "payout": 0, "carryOut": 15000, "state": "pending" } }
+        },
+        {
+          "month": "2027-03",
+          "instructors": [{ "instructorId": "tasnim", "earned": 30000, "isVerified": true }],
+          "expected": { "tasnim": { "payout": 15000, "carryOut": 0, "state": "pending" } }
+        }
+      ]
+    },
+    {
+      "id": "G06-held-then-paid-later",
+      "description": "January's 50000 is held (not verified) and is released under January later; February's 20000 is paid normally and does not include January's amount.",
+      "cycles": [
+        {
+          "month": "2027-01",
+          "instructors": [{ "instructorId": "tasnim", "earned": 50000, "isVerified": false }],
+          "expected": { "tasnim": { "payout": 50000, "carryOut": 0, "state": "held" } }
+        },
+        {
+          "month": "2027-02",
+          "instructors": [{ "instructorId": "tasnim", "earned": 20000, "isVerified": true }],
+          "expected": { "tasnim": { "payout": 20000, "carryOut": 0, "state": "pending" } }
+        }
+      ]
+    },
+    {
+      "id": "G07-two-instructors-one-held",
+      "description": "Farhana (Lead) earned 70001 and Tasnim (Co) 34999 from the same sales (the ledger already split them, leftover poisha to the Lead); Tasnim is not verified, so only her line is held.",
+      "cycles": [
+        {
+          "month": "2027-01",
+          "instructors": [
+            { "instructorId": "farhana", "earned": 70001, "isVerified": true },
+            { "instructorId": "tasnim", "earned": 34999, "isVerified": false }
+          ],
+          "expected": {
+            "farhana": { "payout": 70001, "carryOut": 0, "state": "pending" },
+            "tasnim": { "payout": 34999, "carryOut": 0, "state": "held" }
+          }
+        }
+      ]
+    },
+    {
+      "id": "G08-owed-back-and-unverified",
+      "description": "An unverified instructor who only owes money back is not held: there is nothing to pay.",
+      "cycles": [
+        {
+          "month": "2027-01",
+          "instructors": [{ "instructorId": "tasnim", "earned": -1000, "isVerified": false }],
+          "expected": { "tasnim": { "payout": 0, "carryOut": 1000, "state": "pending" } }
+        }
+      ]
+    }
+  ]
+}

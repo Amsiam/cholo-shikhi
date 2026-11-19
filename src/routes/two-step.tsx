@@ -36,8 +36,10 @@ function TwoStepPage() {
           redeemRecoveryCode: redeemTwoStepRecoveryCode,
         }}
         onDone={async () => {
-          await router.invalidate();
-          await router.navigate({ to: '/' });
+          // Two-step turns a pending session into an active staff session, so start a fresh
+          // document: a client navigation kept the root's pending-session shell state (signed out,
+          // no sidebar) across the staff-home redirect until a manual reload.
+          await router.navigate({ to: '/', reloadDocument: true });
         }}
       />
     </section>

@@ -10,10 +10,10 @@ import {
   saveSetting,
 } from '#src/features/platform/server/settings.functions.ts';
 import { type Column, DataTable } from '#src/features/platform/ui/DataTable.tsx';
+import { SettingsOverview } from '#src/features/platform/ui/SettingsOverview.tsx';
 import { useI18n } from '#src/lib/i18n/react.tsx';
 
 type FlagRow = { flagKey: string; state: string; rolloutPercent: number; revision: number };
-type SettingRow = { settingKey: string; valueType: string; min: number | null; max: number | null };
 type AuditRow = {
   auditEntryId: string;
   occurredAt: string;
@@ -62,15 +62,6 @@ function AdminPage() {
     { accessorKey: 'state', header: () => t('admin.flags.state') },
     { accessorKey: 'rolloutPercent', header: () => t('admin.flags.rollout') },
     { accessorKey: 'revision', header: () => t('admin.flags.revision') },
-  ];
-  const settingColumns: Array<Column<SettingRow>> = [
-    { accessorKey: 'settingKey', header: () => t('admin.settings.key') },
-    { accessorKey: 'valueType', header: () => t('admin.settings.type') },
-    {
-      id: 'range',
-      header: () => t('admin.settings.range'),
-      cell: ({ row }) => `${row.original.min ?? '–'} – ${row.original.max ?? '–'}`,
-    },
   ];
   const auditColumns: Array<Column<AuditRow>> = [
     {
@@ -165,12 +156,7 @@ function AdminPage() {
       </div>
       <div className="grid gap-2">
         <h2 className="font-medium">{t('admin.settings.title')}</h2>
-        <DataTable
-          testId="admin-settings-table"
-          columns={settingColumns}
-          rows={data.settings}
-          emptyText={t('admin.flags.empty')}
-        />
+        <SettingsOverview rows={data.settings} />
       </div>
       <div className="grid gap-2">
         <h2 className="font-medium">{t('admin.audit.title')}</h2>
